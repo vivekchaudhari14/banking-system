@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="Account controller Done">
+    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="Account Service done">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/dto/AccountResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/dto/AccountResponse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/entity/Account.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/entity/Account.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/repository/AccountRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/repository/AccountRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountEventConsumer.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountEventConsumer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountService.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -129,7 +125,8 @@
     <MESSAGE value="Account entity added" />
     <MESSAGE value="account dto added" />
     <MESSAGE value="Account controller Done" />
-    <option name="LAST_COMMIT_MESSAGE" value="Account controller Done" />
+    <MESSAGE value="Account Service done" />
+    <option name="LAST_COMMIT_MESSAGE" value="Account Service done" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
