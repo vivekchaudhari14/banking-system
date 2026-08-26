@@ -1,57 +1,38 @@
-package com.banking.transactionservice.entity;
+package com.banking.transactionservice.dto;
 
-import jakarta.persistence.*;
+import com.banking.transactionservice.entity.TransactionStatus;
+import com.banking.transactionservice.entity.TransactionType;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GenerationType;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name="transactions")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Transaction {
+public class TransactionResponse {
 
-    @id(strategy = GenerationType.UUID)
+
     String id;
-
-    @Column(nullable = false)
     String senderAccountNumber;
-
-    @Column(nullable = false)
     String receiverAccountNumber;
-
-    @Column(nullable = false, precision = 15, scale = 2)
     BigDecimal amount;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     TransactionType type;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     TransactionStatus status;
-
     String description;
-
     String failureReason;
-
     String referenceNumber;
-
-    @CreationTimestamp
     LocalDateTime createdAt;
-
-
     LocalDateTime completedAt;
-
-
 
 }

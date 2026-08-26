@@ -4,12 +4,19 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="AccountEventConsumer done">
-      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/entity/Transaction.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/entity/TransactionStatus.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/entity/TransactionType.java" afterDir="false" />
+    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="Transaction entity done">
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/client/AccountServiceClient.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/config/RedisConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/controller/TransactionController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/dto/TransactionResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/dto/TransaferRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/event/TransactionInitiatedEvent.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/repository/TransactionRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionEventConsumer.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/account-service/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/resources/application.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/entity/Transaction.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/entity/Transaction.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/resources/application.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -20,8 +27,8 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Interface" />
-        <option value="Class" />
         <option value="Enum" />
+        <option value="Class" />
       </list>
     </option>
   </component>
@@ -130,7 +137,8 @@
     <MESSAGE value="Account controller Done" />
     <MESSAGE value="Account Service done" />
     <MESSAGE value="AccountEventConsumer done" />
-    <option name="LAST_COMMIT_MESSAGE" value="AccountEventConsumer done" />
+    <MESSAGE value="Transaction entity done" />
+    <option name="LAST_COMMIT_MESSAGE" value="Transaction entity done" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
