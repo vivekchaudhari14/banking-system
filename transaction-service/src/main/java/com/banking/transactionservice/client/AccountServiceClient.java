@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 
+@FeignClient(name = "account-service" , url = "${account.service.url}")
 public interface AccountServiceClient {
 
-    @FeignClient(name = "account-service" , url = "${account.service.url}")
     @PutMapping("/api/v1/accounts/{accountNumber}/deduct")
     String deductBalance(@PathVariable("accountNumber") String accountNumber
             , @RequestParam("amount") BigDecimal amount);
