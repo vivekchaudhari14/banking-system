@@ -14,5 +14,10 @@ public interface AccountServiceClient {
     String deductBalance(@PathVariable("accountNumber") String accountNumber
             , @RequestParam("amount") BigDecimal amount);
 
+    @PutMapping("/api/v1/accounts/")
+    String  creditBalence(
+            @PathVariable String accountNumber,
+            @RequestParam BigDecimal amount);
+
 
 }

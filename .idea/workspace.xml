@@ -4,15 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="Transaction Controller and properties done">
-      <change afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/client/AccountServiceClient.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/model/FraudCheckResult.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/service/FraudDetectionEventConsumer.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/service/FraudDetectionService.java" afterDir="false" />
+    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="fraud detection s ystem completed">
+      <change afterPath="$PROJECT_DIR$/notification-service/src/main/java/com/banking/notificationservice/service/NotificationService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/event/TransactionCompletedEvent.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fraud-detection-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/fraud-detection-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/controller/AccountController.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/controller/AccountController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fraud-detection-service/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/resources/application.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/client/AccountServiceClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/client/AccountServiceClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionEventConsumer.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionEventConsumer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/resources/application.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -135,7 +138,9 @@
     <MESSAGE value="AccountEventConsumer done" />
     <MESSAGE value="Transaction entity done" />
     <MESSAGE value="Transaction Controller and properties done" />
-    <option name="LAST_COMMIT_MESSAGE" value="Transaction Controller and properties done" />
+    <MESSAGE value="fraud detection s ystem completed" />
+    <MESSAGE value="fraud detection system completed" />
+    <option name="LAST_COMMIT_MESSAGE" value="fraud detection system completed" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

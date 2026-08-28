@@ -68,7 +68,7 @@ public class AccountController {
 
      */
 
-    @PutMapping("{accountNumber}/credit")
+    @PutMapping("{accountNumber}/credit/{accountNumber}/credit")
     public ResponseEntity<String> creditBalence(
             @PathVariable String accountNumber,@RequestParam BigDecimal amount){
         accountService.creditBalance(accountNumber,amount);
