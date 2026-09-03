@@ -27,13 +27,13 @@ public class TransactionController {
             @Valid @RequestBody TransaferRequest request) {
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(transactionService.transfer(request);
+                .body(transactionService.transfer(request));
     }
 
     @GetMapping("/{TransactionId}")
     public ResponseEntity<TransactionResponse> getTransaction(
             @PathVariable String transactionId){
-        return ResponseEntity.ok(transactionService.getTransaction(transaction));
+        return ResponseEntity.ok(transactionService.getTransaction(transactionId));
     }
 
     @GetMapping("/account/{accountNumber}")

@@ -22,14 +22,14 @@ import java.util.Map;
 @Slf4j
 public class PaymentController {
 
-    private PaymentService paymentService;
+    private final PaymentService paymentService;
 
     @PostMapping("/create-order")
     public ResponseEntity<PaymentOrderResponse> createPaymentOrder(
             @Valid @RequestBody CreatePaymentRequest request) throws RazorpayException {
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(paymentService.createPaymentOreder(request));
+                .body(paymentService.createPaymentOrder(request));
 
     }
 

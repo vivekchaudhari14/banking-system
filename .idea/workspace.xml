@@ -4,17 +4,43 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="Transaction work done">
-      <change afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/config/corsConfig.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/controller/PaymentController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/dto/CreatePaymentRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/dto/PaymentOrderResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/entity/PaymentStatus.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/repository/PaymentRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/service/PaymentService.java" afterDir="false" />
+    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="Paymentservice done">
+      <change afterPath="$PROJECT_DIR$/api-gateway/src/main/java/com/banking/apigateway/config/RateLimiterConfig.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/config/RedisConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/controller/AccountController.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/controller/AccountController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/repository/AccountRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/repository/AccountRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountEventConsumer.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountEventConsumer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountService.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api-gateway/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/api-gateway/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api-gateway/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/api-gateway/src/main/resources/application.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fraud-detection-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/fraud-detection-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/FraudDetectionServiceApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/FraudDetectionServiceApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/client/AccountServiceClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/client/AccountServiceClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/service/FraudDetectionEventConsumer.java" beforeDir="false" afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/service/FraudDetectionEventConsumer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/service/FraudDetectionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/service/FraudDetectionService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fraud-detection-service/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/resources/application.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notification-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/notification-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notification-service/src/main/java/com/banking/notificationservice/service/NotificationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/notification-service/src/main/java/com/banking/notificationservice/service/NotificationService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notification-service/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/notification-service/src/main/resources/application.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/controller/PaymentController.java" beforeDir="false" afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/controller/PaymentController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/entity/Payment.java" beforeDir="false" afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/entity/Payment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/repository/PaymentRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/repository/PaymentRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/service/PaymentService.java" beforeDir="false" afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/service/PaymentService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/payment-service/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/payment-service/src/main/resources/application.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/TransactionServiceApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/TransactionServiceApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/client/AccountServiceClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/client/AccountServiceClient.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/config/RedisConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/config/RedisConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/controller/TransactionController.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/controller/TransactionController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/entity/Transaction.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/entity/Transaction.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionEventConsumer.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionEventConsumer.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/resources/application.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,6 +71,9 @@
     &quot;accountId&quot;: &quot;b3fe1c6e-1c54-4a71-ab30-1e70f933c227&quot;
   }
 }</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/client/AccountServiceClient.java" root0="FORCE_HIGHLIGHTING" />
+  </component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -64,11 +93,19 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;Application.FraudDetectionServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Application.TransactionServiceApplication.executor&quot;: &quot;Run&quot;,
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;Spring Boot.AccountServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.ApiGatewayApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.FraudDetectionServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.NotificationServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.PaymentServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.TransactionServiceApplication.executor&quot;: &quot;Run&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
@@ -77,9 +114,91 @@
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.project.maven.repository.indices&quot;
   }
 }</component>
+  <component name="RunManager" selected="Spring Boot.PaymentServiceApplication">
+    <configuration name="AccountServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UnknownPolicyInFreeMode" />
+      <module name="account-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.banking.accountservice.AccountServiceApplication" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.banking.accountservice.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="FraudDetectionServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UnknownPolicyInFreeMode" />
+      <module name="fraud-detection-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.banking.frauddetectionservice.FraudDetectionServiceApplication" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.banking.frauddetectionservice.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="NotificationServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UnknownPolicyInFreeMode" />
+      <module name="notification-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.banking.notificationservice.NotificationServiceApplication" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.banking.notificationservice.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="PaymentServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UnknownPolicyInFreeMode" />
+      <module name="payment-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.banking.paymentservice.PaymentServiceApplication" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.banking.paymentservice.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TransactionServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UnknownPolicyInFreeMode" />
+      <module name="transaction-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.banking.transactionservice.TransactionServiceApplication" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.banking.transactionservice.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Spring Boot.PaymentServiceApplication" />
+        <item itemvalue="Spring Boot.TransactionServiceApplication" />
+        <item itemvalue="Spring Boot.NotificationServiceApplication" />
+        <item itemvalue="Spring Boot.FraudDetectionServiceApplication" />
+        <item itemvalue="Spring Boot.AccountServiceApplication" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -140,18 +259,29 @@
     <MESSAGE value="fraud detection s ystem completed" />
     <MESSAGE value="fraud detection system completed" />
     <MESSAGE value="Transaction work done" />
-    <option name="LAST_COMMIT_MESSAGE" value="Transaction work done" />
+    <MESSAGE value="Paymentservice done" />
+    <option name="LAST_COMMIT_MESSAGE" value="Paymentservice done" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="NONE" type="java-line">
           <url>file://$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/controller/AccountController.java</url>
-          <line>23</line>
+          <line>24</line>
           <placement>INTER_LINE</placement>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="NONE" type="java-line">
+          <url>file://$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/FraudDetectionServiceApplication.java</url>
+          <line>7</line>
+          <placement>INTER_LINE</placement>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>

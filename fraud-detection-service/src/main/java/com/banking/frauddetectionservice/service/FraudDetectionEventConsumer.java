@@ -33,8 +33,12 @@ public class FraudDetectionEventConsumer {
 
             fraudDetectionService.checkTransaction(payload);
 
-        }catch (Exception e){
-
+        }catch (Exception e) {
+            log.error(
+                    "Error processing transaction for fraud check",
+                    e
+            );
+            throw e;
         }
     }
 

@@ -6,6 +6,7 @@ import com.banking.accountservice.service.AccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 
 @RestController
-@RequestMapping("api/v1/accounts")
+@RequestMapping("/api/v1/accounts")
 @Slf4j
 @RequiredArgsConstructor
 
@@ -24,7 +25,9 @@ public class AccountController {
     @PostMapping()
     public ResponseEntity<AccountResponse> createAccount(
             @Valid @RequestBody CreateAccountRequest request) {
-        return ResponseEntity.status(HttpStatusCode.CREATED)
+        log.info("Controller hit");
+        System.out.println("Controller hit");
+        return ResponseEntity.status(HttpStatus.CREATED)
                 .body(accountService.createAccount(request));
 
     }
@@ -56,7 +59,7 @@ public class AccountController {
     @PutMapping("/{accountNumber}/deduct")
     public ResponseEntity<String> deductBalance(
             @PathVariable String accountNumber,@RequestParam BigDecimal amount){
-        accountService.deductBalance(accountNumber.amount);
+        accountService.deductBalance(accountNumber,amount);
         return ResponseEntity.ok("Account deducted Successfully");
     }
 
@@ -68,9 +71,11 @@ public class AccountController {
 
      */
 
-    @PutMapping("{accountNumber}/credit/{accountNumber}/credit")
+    @PutMapping("/{accountNumber}/credit")
     public ResponseEntity<String> creditBalence(
-            @PathVariable String accountNumber,@RequestParam BigDecimal amount){
+            @PathVariable String accountNumber,
+            @RequestParam BigDecimal amount){
+
         accountService.creditBalance(accountNumber,amount);
         return ResponseEntity.ok("Balance credited Successfully");
 

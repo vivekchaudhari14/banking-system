@@ -29,11 +29,15 @@ public class AccountEventConsumer {
     public void consumeTransactionCompleted(
             @Payload Map<String,Object> payload ){
         try{
-            String accountNumber = (String) payload.get("receiveraccountNumber");
-            BigDecimal amount = new BigDecimal((String) payload.get("amount"));
 
-            log.info("Crediting account :{} amount {}", receiverAccount, amount);
-            accountService.creditBalance(receiverAccount, amount);
+            String accountNumber =
+                    (String) payload.get("receiverAccountNumber");
+
+            BigDecimal amount =
+                    new BigDecimal(payload.get("amount").toString());
+
+            log.info("Crediting account :{} amount {}", accountNumber, amount);
+            accountService.creditBalance(accountNumber, amount);
 
 
         } catch (Exception e) {

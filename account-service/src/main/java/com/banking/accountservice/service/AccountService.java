@@ -25,7 +25,7 @@ public class AccountService {
     public AccountResponse createAccount(CreateAccountRequest request) {
         log.info("Creating account request {}", request.getEmail());
 
-        if(accountRepository.existsByEmail(request.getEmail()){
+        if(accountRepository.existsByEmail(request.getEmail())){
             throw new RuntimeException("Account already exists for this email"+request.getEmail());
         }
 
@@ -99,12 +99,27 @@ public class AccountService {
     }
 
     public void creditBalance(String accountNumber, BigDecimal amount) {
-        log.info("Credit balance {} from account", amount, accountNumber);
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
 
-        account.setBalance(account.getBalance().add(amount));
-         accountRepository.save(account);
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException(
+                    "Credit amount must be greater than zero"
+            );
+        }
+
+        log.info("Credit balance {} from account", amount, accountNumber);
+
+        Account account = accountRepository
+                .findByAccountNumber(accountNumber)
+                .orElseThrow(() ->
+                        new RuntimeException("Account not found"));
+
+        account.setBalance(
+                account.getBalance().add(amount)
+        );
+
+
+            accountRepository.save(account);
+
          log.info("Account credit balance. New Balance {}", account.getBalance());
 
     }

@@ -49,7 +49,7 @@ public class PaymentService {
         Create Razorpay payment order
 
         Flow:
-            1.Create Order in rozorpay
+            1.Create Order in razorpay
             2. save payment record in DB
             3. return order details to frontend
             4. Fronted show RazorPay Checkout
@@ -69,8 +69,8 @@ public class PaymentService {
 
         JSONObject orderRequest = new JSONObject();
         orderRequest.put("amount", convertedAmount);
-        orderRequest.put("currency", "USD/INR");
-        orderRequest.put("recepit","rcpt"  + System.currentTimeMillis()
+        orderRequest.put("currency", "INR");
+        orderRequest.put("receipt","rcpt"  + System.currentTimeMillis()
                 +UUID.randomUUID().toString().replace("-","")
                 .substring(0,10));
 
@@ -81,10 +81,17 @@ public class PaymentService {
         // saved payment record
 
         Payment payment = new Payment();
-        payment.setId(razorpayOrder.get("id").toString());
+
+
+        // Don't set payment.id manually
+
+        payment.setRazorpayOrderId(
+                razorpayOrder.get("id").toString()
+        );
+
         payment.setAccountNumber(request.getAccountNumber());
         payment.setAmount(request.getAmount());
-        payment.setCurrency("USD/INR");
+        payment.setCurrency("INR");
         payment.setStatus(PaymentStatus.CREATED);
         payment.setDescription(request.getDescription());
 
@@ -94,7 +101,7 @@ public class PaymentService {
                 savedPayment.getId(),
                 razorpayOrder.get("id").toString(),
                 request.getAmount(),
-                "USD/INR",
+                "INR",
                 "CREATED",
                 keyId
         );
@@ -106,9 +113,8 @@ public class PaymentService {
 
         String event = payload.get("event").toString();
 
-        if("payment.completed".equals(event)) {
+        if ("payment.captured".equals(event)) {
             handlePaymentSuccess(payload);
-            
         } else if ("payment.failed".equals(event)) {
             handlePaymentFailure(payload);
         }
@@ -121,7 +127,7 @@ public class PaymentService {
             String orderId = paymentData.get("order_id").toString();
             String paymentId = paymentData.get("id").toString();
 
-            Payment payment = paymentRepository.findbyRazorpayOrderId(orderId)
+            Payment payment = paymentRepository.findByRazorpayOrderId(orderId)
                     .orElseThrow(()-> new RuntimeException("Payment Not Found order"+orderId));
 
             payment.setRazorpayPaymentId(paymentId);
@@ -151,7 +157,7 @@ public class PaymentService {
             Map<String,Object> paymentData = extractPaymentData(payload);
             String orderId = paymentData.get("order_id").toString();
 
-            Payment payment = paymentRepository.findbyRazorpayOrderId(orderId)
+            Payment payment = paymentRepository.findByRazorpayOrderId(orderId)
                     .orElseThrow(()-> new RuntimeException("Payment Not Found order"+orderId));
 
             payment.setStatus(PaymentStatus.FAILED);
@@ -177,14 +183,16 @@ public class PaymentService {
         }
     }
 
-    private Map<String,Object> extractPaymentData(Map<String,Object> payload) {
+    private Map<String, Object> extractPaymentData(
+            Map<String, Object> payload) {
 
-        Map<String,Object> entity = (Map<String,Object>)payload.get("payload");
+        Map<String, Object> payloadData =
+                (Map<String, Object>) payload.get("payload");
 
-        Map<String,Object> event = (Map<String,Object>)entity.get("payment");
+        Map<String, Object> paymentWrapper =
+                (Map<String, Object>) payloadData.get("payment");
 
         return (Map<String, Object>) paymentWrapper.get("entity");
-
     }
 
 }

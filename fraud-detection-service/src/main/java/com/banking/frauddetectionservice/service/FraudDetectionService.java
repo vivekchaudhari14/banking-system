@@ -31,11 +31,11 @@ public class FraudDetectionService {
     @Value("${fraud.suspicious-amount-multiplier}")
     private double suspiciousAmountMultiplier;
 
-    @value("${fraud.max-balance-percentage}")
+    @Value("${fraud.max-balance-percentage}")
     private double maxBalancePercentage;
 
     private static final String VERIFIACTION_REQUIRED_TOPIC = "verification.required";
-    private static final String FRAUD_CHECK_CLEAN_RESULT_TOPIC = "verificaion.check.clean";
+    private static final String FRAUD_CHECK_CLEAN_RESULT_TOPIC = "fraud.check.clean";
 
     public void checkTransaction(Map<String, Object> payload) {
 
@@ -53,7 +53,7 @@ public class FraudDetectionService {
 
         if(result.isFraud()) {
             log.info("Suspicious activity detected - account: {} " +
-                    "reason: {} - requesting OTP verification",
+                            "reason: {} - requesting OTP verification",
                     accountNumber,result.getReason());
             Map<String, Object> verifiactionEvent  = new HashMap<>();
             verifiactionEvent.put("transactionId", transactionId);
@@ -93,7 +93,7 @@ public class FraudDetectionService {
                     "- exceeds 3x your average" );
         }
         if(senderBalance.compareTo(BigDecimal.ZERO) > 0
-        && isBalanceCheckFailed(senderBalance,amount)) {
+                && isBalanceCheckFailed(senderBalance,amount)) {
             return new FraudCheckResult(
                     true, "Transaction exceed 90% of account balance" );
         }
@@ -101,7 +101,9 @@ public class FraudDetectionService {
     }
 
     private boolean isVelocityExceeded(String accountNumber) {
-        String key = "fraud:velocity"+accountNumber;
+
+        String key = "fraud:velocity:" + accountNumber;
+
         Long count = redisTemplate.opsForValue().increment(key);
 
         if(count != null && count == 1) {
@@ -116,11 +118,17 @@ public class FraudDetectionService {
     }
 
     private boolean isAmountSuspicious(String accountNumber, BigDecimal amount) {
-        String avgKey= "fraud:avg_amount" + accountNumber;
-        String avgStr = redisTemplate.opsForValue().get(avgKey);
 
-        if(avgStr == null) {
-            redisTemplate.opsForValue().set(avgKey,amount.toString());
+        String avgKey = "fraud:avg_amount:" + accountNumber;
+
+        String avgStr =
+                (String) redisTemplate.opsForValue().get(avgKey);
+
+        if (avgStr == null) {
+            redisTemplate.opsForValue().set(
+                    avgKey,
+                    amount.toString()
+            );
             return false;
         }
 
@@ -130,12 +138,12 @@ public class FraudDetectionService {
 
         //update running average
 
-        BigDecimal newAvg = avgAmount.add(ammount)
+        BigDecimal newAvg = avgAmount.add(amount)
                 .divide(BigDecimal.valueOf(2),2, RoundingMode.HALF_UP);
         redisTemplate.opsForValue().set(avgKey,newAvg.toString());
 
         log.info("Amount check - amount: {} threhold : {} suspicious: {}"
-        ,amount,threhold,amount.compareTo(threhold) > 0);
+                ,amount,threhold,amount.compareTo(threhold) > 0);
 
         return amount.compareTo(threhold) > 0;
 

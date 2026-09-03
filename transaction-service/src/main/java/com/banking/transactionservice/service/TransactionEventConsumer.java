@@ -35,7 +35,7 @@ public class TransactionEventConsumer {
 
      */
 
-    @KafkaListener(topics = "verifiaction.required")
+    @KafkaListener(topics = "verification.required")
     public void consumeVerificationRequired(@Payload Map<String,Object> payload) {
 
         try {
