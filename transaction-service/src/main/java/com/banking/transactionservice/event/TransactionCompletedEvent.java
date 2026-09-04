@@ -18,5 +18,4 @@ public class TransactionCompletedEvent {
     private BigDecimal amount;
     private String description;
 
-
 }

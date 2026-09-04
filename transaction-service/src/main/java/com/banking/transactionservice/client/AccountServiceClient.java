@@ -7,17 +7,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 
-@FeignClient(name = "account-service" , url = "${account.service.url}")
+@FeignClient(
+        name = "account-service",
+        url = "${account.service.url}"
+)
 public interface AccountServiceClient {
 
     @PutMapping("/api/v1/accounts/{accountNumber}/deduct")
-    String deductBalance(@PathVariable("accountNumber") String accountNumber
-            , @RequestParam("amount") BigDecimal amount);
+    void deductBalance(
+            @PathVariable("accountNumber") String accountNumber,
+            @RequestParam("amount") BigDecimal amount,
+            @RequestParam("transactionId") String transactionId
+    );
 
     @PutMapping("/api/v1/accounts/{accountNumber}/credit")
     String creditBalance(
             @PathVariable("accountNumber") String accountNumber,
-            @RequestParam("amount") BigDecimal amount);
-
-
+            @RequestParam("amount") BigDecimal amount
+    );
 }

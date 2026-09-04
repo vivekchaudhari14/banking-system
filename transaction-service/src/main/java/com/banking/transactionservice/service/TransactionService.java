@@ -34,6 +34,7 @@ public class TransactionService  {
     private final RedisTemplate<String, String> redisTemplate;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
+    private static final String OTP_KEY_PREFIX = "verification:otp:";
     private static final String TRANSACTION_INITIATED_TOPIC = "transaction.initiated";
     private static final String TRANSACTION_COMPLETED_TOPIC = "transaction.completed";
     private static final String TRANSACTION_REFUNDED_TOPIC = "transaction.refunded";
@@ -59,12 +60,12 @@ public class TransactionService  {
                 request.getAmount()
         );
 
-        // 1. Basic business validation
+        // 1. Business validation
         if (request.getSenderAccountNumber()
                 .equals(request.getReceiverAccountNumber())) {
 
             throw new IllegalArgumentException(
-                    "Sender and receiver accounts must be different"
+                    "Sender and receiver account cannot be same"
             );
         }
 
@@ -80,10 +81,12 @@ public class TransactionService  {
         Transaction transaction = new Transaction();
 
         transaction.setSenderAccountNumber(
-                request.getSenderAccountNumber());
+                request.getSenderAccountNumber()
+        );
 
         transaction.setReceiverAccountNumber(
-                request.getReceiverAccountNumber());
+                request.getReceiverAccountNumber()
+        );
 
         transaction.setAmount(request.getAmount());
 
@@ -97,81 +100,91 @@ public class TransactionService  {
                 UUID.randomUUID().toString()
         );
 
+        // Save transaction
         Transaction savedTransaction =
                 transactionRepository.save(transaction);
 
         log.info(
-                "Transaction created: {} status=PENDING",
+                "Transaction created with PENDING status: {}",
                 savedTransaction.getId()
         );
 
+
+        // 3. Saga Step 1 - Deduct sender balance
         try {
 
-            // 3. Saga Step 1 - Deduct sender
             accountServiceClient.deductBalance(
-                    savedTransaction.getSenderAccountNumber(),
-                    savedTransaction.getAmount()
-            );
-
-            // 4. Deduction successful
-            savedTransaction.setStatus(
-                    TransactionStatus.PROCESSING
-            );
-
-            transactionRepository.save(savedTransaction);
-
-            log.info(
-                    "Sender balance deducted successfully. Transaction: {}",
-                    savedTransaction.getId()
-            );
-
-            // 5. Saga Step 2 - Fraud check
-            TransactionInitiatedEvent event =
-                    new TransactionInitiatedEvent(
-                            savedTransaction.getId(),
-                            savedTransaction.getSenderAccountNumber(),
-                            savedTransaction.getReceiverAccountNumber(),
-                            savedTransaction.getAmount(),
-                            savedTransaction.getDescription()
-                    );
-
-            kafkaTemplate.send(
-                    TRANSACTION_INITIATED_TOPIC,
-                    savedTransaction.getId(),
-                    event
+                    request.getSenderAccountNumber(),
+                    request.getAmount(),
+                    transaction.getId()
             );
 
             log.info(
-                    "TransactionInitiatedEvent published: {}",
+                    "Sender balance deducted successfully: transaction={}",
                     savedTransaction.getId()
             );
-
-            return mapToResponse(savedTransaction);
 
         } catch (Exception e) {
 
             log.error(
-                    "SAGA FAILED - Transaction: {}",
+                    "Failed to deduct sender balance: transaction={}",
                     savedTransaction.getId(),
                     e
             );
 
-            // Mark transaction failed
             savedTransaction.setStatus(
                     TransactionStatus.FAILED
             );
 
             savedTransaction.setFailureReason(
-                    "Unable to deduct sender balance"
+                    "Unable to deduct sender account balance"
             );
 
             transactionRepository.save(savedTransaction);
 
             throw new RuntimeException(
-                    "Transaction failed",
+                    "Unable to process transfer",
                     e
             );
         }
+
+
+        // 4. Deduction successful
+        savedTransaction.setStatus(
+                TransactionStatus.PROCESSING
+        );
+
+        savedTransaction =
+                transactionRepository.save(savedTransaction);
+
+        log.info(
+                "Transaction status changed to PROCESSING: {}",
+                savedTransaction.getId()
+        );
+
+
+        // 5. Saga Step 2 - Send transaction to Fraud Service
+        TransactionInitiatedEvent event =
+                new TransactionInitiatedEvent(
+                        savedTransaction.getId(),
+                        savedTransaction.getSenderAccountNumber(),
+                        savedTransaction.getReceiverAccountNumber(),
+                        savedTransaction.getAmount(),
+                        savedTransaction.getDescription()
+                );
+
+        kafkaTemplate.send(
+                TRANSACTION_INITIATED_TOPIC,
+                savedTransaction.getId(),
+                event
+        );
+
+        log.info(
+                "Transaction initiated event published: {}",
+                savedTransaction.getId()
+        );
+
+        return mapToResponse(savedTransaction);
     }
 
     public TransactionResponse getTransaction (String transactionId) {
@@ -189,45 +202,115 @@ public class TransactionService  {
     }
 
     public TransactionResponse verifyOTP(String transactionId, String otp) {
-        log.info("OTP verifcation for the trasaction: {}", transactionId);
+
+        log.info("OTP verification for transaction: {}", transactionId);
 
         Transaction transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() ->
-                        new RuntimeException("Transaction not found" + transactionId));
+                        new RuntimeException(
+                                "Transaction not found: " + transactionId
+                        ));
 
-        String otpKey = "verifaction:otp" + transactionId;
-        String storedOtp = redisTemplate.opsForValue().get(otpKey);
-
-        if (transaction.getStatus()
-                != TransactionStatus.PENDING_VERIFICATION) {
+        // OTP verification allowed only for
+        // PENDING_VERIFICATION transaction
+        if (transaction.getStatus() != TransactionStatus.PENDING_VERIFICATION) {
 
             throw new IllegalStateException(
-                    "Transaction is not waiting for OTP verification"
+                    "Transaction is not waiting for OTP verification. " +
+                            "Current status: " + transaction.getStatus()
             );
         }
 
-        if(storedOtp == null) {
-            // otp expired
-            log.warn("OTP expired for transaction {}", transactionId);
-            compensateTransaction(transaction,"OTP expired - transaction cancelled and amount refunded");
+        // OTP Redis key
+        String otpKey = OTP_KEY_PREFIX + transactionId;
+
+        String storedOtp = redisTemplate.opsForValue().get(otpKey);
+
+        // =========================================================
+        // 1. OTP EXPIRED
+        // =========================================================
+
+        if (storedOtp == null) {
+
+            log.warn(
+                    "OTP expired for transaction: {}",
+                    transactionId
+            );
+
+            compensateTransaction(
+                    transaction,
+                    "OTP expired - transaction cancelled and amount refunded"
+            );
+
             return mapToResponse(transaction);
         }
 
-        if(!storedOtp.equals(otp)) {
-            // Block account And Refund
-            log.warn("Wrong OTP - blocking account and refunding: {}", transactionId);
-            redisTemplate.delete(otpKey);
-            blockAccountAndCompensate(transaction,
-                    "Wrong otp entered - transaction cancelled, "+
-                    "account blocked are security");
+        // =========================================================
+        // 2. WRONG OTP
+        // =========================================================
+
+        if (!storedOtp.equals(otp)) {
+
+            String attemptKey =
+                    "verification:attempts:" + transactionId;
+
+            Long attempts = redisTemplate.opsForValue()
+                    .increment(attemptKey);
+
+            if (attempts >= 3) {
+
+                // Maximum attempts reached
+                redisTemplate.delete(otpKey);
+                redisTemplate.delete(attemptKey);
+
+                log.warn(
+                        "Maximum OTP attempts exceeded for transaction: {}",
+                        transactionId
+                );
+
+                blockAccountAndCompensate(
+                        transaction,
+                        "Maximum OTP attempts exceeded"
+                );
+
+            } else {
+
+                // User can retry OTP
+                log.warn(
+                        "Wrong OTP for transaction: {}. Attempt {}/3",
+                        transactionId,
+                        attempts
+                );
+            }
+
+            // IMPORTANT:
+            // Don't delete OTP here.
+            // Don't complete transaction here.
             return mapToResponse(transaction);
         }
 
-        log.info("OTP verified - completing transaction {}", transactionId);
+        // =========================================================
+        // 3. CORRECT OTP
+        // =========================================================
+
+        log.info(
+                "OTP verified successfully for transaction: {}",
+                transactionId
+        );
+
+        // Delete OTP
         redisTemplate.delete(otpKey);
-        completeTransaction(transaction);
-        return mapToResponse(transaction);
 
+        // Delete attempt counter
+        String attemptKey =
+                "verification:attempts:" + transactionId;
+
+        redisTemplate.delete(attemptKey);
+
+        // Complete transaction
+        completeTransaction(transaction);
+
+        return mapToResponse(transaction);
     }
 
     private void compensateTransaction(
@@ -246,7 +329,8 @@ public class TransactionService  {
             // Step 1: Refund sender
             accountServiceClient.creditBalance(
                     transaction.getSenderAccountNumber(),
-                    transaction.getAmount()
+                    transaction.getAmount(),
+                    transaction.getId() + ":REFUND"
             );
 
             log.info(
@@ -358,9 +442,9 @@ public class TransactionService  {
         );
     }
 
-    private void completeTransaction(
-            Transaction transaction) {
+    private void completeTransaction(Transaction transaction) {
 
+        // 1. Mark transaction completed
         transaction.setStatus(
                 TransactionStatus.COMPLETED
         );
@@ -371,6 +455,13 @@ public class TransactionService  {
 
         transactionRepository.save(transaction);
 
+        log.info(
+                "Transaction marked COMPLETED: {}",
+                transaction.getId()
+        );
+
+
+        // 2. Publish event for Account Service
         TransactionCompletedEvent completedEvent =
                 new TransactionCompletedEvent(
                         transaction.getId(),
@@ -387,7 +478,7 @@ public class TransactionService  {
         );
 
         log.info(
-                "SAGA COMPLETE - transaction: {}",
+                "transaction.completed event published: {}",
                 transaction.getId()
         );
     }

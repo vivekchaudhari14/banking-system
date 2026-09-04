@@ -27,7 +27,8 @@ public class TransactionEventConsumer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    private static final String TRANSACTION_OTP_GENERETED_TOPIC = "transaction.otp.generated ";
+    private static final String OTP_KEY_PREFIX = "verification:otp:";
+    private static final String TRANSACTION_OTP_GENERATED_TOPIC = "transaction.otp.generated";
 
     /*
         Consnume verification required
@@ -61,8 +62,24 @@ public class TransactionEventConsumer {
             String otp = String.format("%06d", (int) (Math.random() * 900000) + 100000);
 
             // Store otp in redis - expires in 5 minutes
-            String otpKey = "verification:otp" + transactionId;
-            redisTemplate.opsForValue().set(otpKey,otp,OTP_EXPIRY_MINUTES, TimeUnit.MINUTES);
+            String otpKey = OTP_KEY_PREFIX + transactionId;
+
+            redisTemplate.opsForValue().set(
+                    otpKey,
+                    otp,
+                    OTP_EXPIRY_MINUTES,
+                    TimeUnit.MINUTES
+            );
+
+            // Store OTP attempt count
+            String attemptKey = "verification:attempts:" + transactionId;
+
+            redisTemplate.opsForValue().set(
+                    attemptKey,
+                    "0",
+                    OTP_EXPIRY_MINUTES,
+                    TimeUnit.MINUTES
+            );
 
             // update status
             transaction.setStatus(TransactionStatus.PENDING_VERIFICATION);
@@ -81,7 +98,7 @@ public class TransactionEventConsumer {
             otpEvent.put("otp",otp);
             otpEvent.put("amount",payload.get("amount"));
 
-            kafkaTemplate.send(TRANSACTION_OTP_GENERETED_TOPIC, transactionId, otpEvent);
+            kafkaTemplate.send(TRANSACTION_OTP_GENERATED_TOPIC, transactionId, otpEvent);
 
 
         }catch (Exception e){

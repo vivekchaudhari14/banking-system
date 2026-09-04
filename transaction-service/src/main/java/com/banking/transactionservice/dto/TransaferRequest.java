@@ -17,7 +17,7 @@ import java.math.BigDecimal;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class TransaferRequest {
 
-    @NotNull(message = "Sender account number is required")
+    @NotBlank(message = "Sender account number is required")
     String senderAccountNumber;
 
     @NotBlank(message = "Receiver account number is required")

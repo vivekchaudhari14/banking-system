@@ -5,7 +5,10 @@ import com.banking.accountservice.dto.CreateAccountRequest;
 import com.banking.accountservice.entity.Account;
 import com.banking.accountservice.entity.AccountStatus;
 import com.banking.accountservice.entity.AccountType;
+import com.banking.accountservice.entity.ProcessedTransaction;
 import com.banking.accountservice.repository.AccountRepository;
+import com.banking.accountservice.repository.ProcessedTransactionRepository;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,7 @@ import java.security.SecureRandom;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final ProcessedTransactionRepository processedTransactionRepository;
     private static SecureRandom secureRandom = new SecureRandom();
 
     public AccountResponse createAccount(CreateAccountRequest request) {
@@ -78,50 +82,127 @@ public class AccountService {
 
     }
 
-    public void deductBalance(String accountNumber, BigDecimal amount) {
-        log.info("Deducting balance {} from account", amount, accountNumber);
+    @Transactional
+    public void deductBalance(
+            String accountNumber,
+            BigDecimal amount,
+            String transactionId
+    ) {
 
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+
+        // Idempotency check
+        if (processedTransactionRepository
+                .existsByTransactionIdAndOperation(transactionId, "DEBIT")) {
+
+            log.info(
+                    "Transaction {} already debited. Skipping duplicate request.",
+                    transactionId
+            );
+
+            return;
+        }
+
+        // Pessimistic lock
+        Account account = accountRepository
+                .findByAccountNumberForUpdate(accountNumber)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Account not found: " + accountNumber
+                        )
+                );
+
         if (account.getStatus() != AccountStatus.ACTIVE) {
-            throw new RuntimeException("Account not active"+accountNumber);
+            throw new IllegalStateException("Account is not active");
         }
 
         if (account.getBalance().compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient funds for account balance");
+            throw new IllegalStateException("Insufficient balance");
         }
 
-        account.setBalance(account.getBalance().subtract(amount));
+        // Deduct money
+        account.setBalance(
+                account.getBalance().subtract(amount)
+        );
 
         accountRepository.save(account);
-        log.info("Account deducted. New Balance {}", account.getBalance());
 
+        // Save idempotency record
+        ProcessedTransaction processedTransaction =
+                new ProcessedTransaction(
+                        transactionId,
+                        "DEBIT"
+                );
+
+        processedTransactionRepository.save(processedTransaction);
+
+        log.info(
+                "Amount {} deducted from account {} for transaction {}",
+                amount,
+                accountNumber,
+                transactionId
+        );
     }
 
-    public void creditBalance(String accountNumber, BigDecimal amount) {
+    @Transactional
+    public void creditBalance(
+            String accountNumber,
+            BigDecimal amount,
+            String transactionId
+    ) {
 
-        if (amount == null || amount.signum() <= 0) {
-            throw new IllegalArgumentException(
-                    "Credit amount must be greater than zero"
-            );
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
         }
 
-        log.info("Credit balance {} from account", amount, accountNumber);
+        // Idempotency check
+        if (processedTransactionRepository
+                .existsByTransactionIdAndOperation(transactionId, "CREDIT")) {
+
+            log.info(
+                    "Transaction {} already credited. Skipping duplicate request.",
+                    transactionId
+            );
+
+            return;
+        }
 
         Account account = accountRepository
-                .findByAccountNumber(accountNumber)
+                .findByAccountNumberForUpdate(accountNumber)
                 .orElseThrow(() ->
-                        new RuntimeException("Account not found"));
+                        new ResourceNotFoundException(
+                                "Account not found: " + accountNumber
+                        )
+                );
 
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+            throw new IllegalStateException("Account is not active");
+        }
+
+        // Credit money
         account.setBalance(
                 account.getBalance().add(amount)
         );
 
+        accountRepository.save(account);
 
-            accountRepository.save(account);
+        // Save idempotency record
+        ProcessedTransaction processedTransaction =
+                new ProcessedTransaction(
+                        transactionId,
+                        "CREDIT"
+                );
 
-         log.info("Account credit balance. New Balance {}", account.getBalance());
+        processedTransactionRepository.save(processedTransaction);
 
+        log.info(
+                "Amount {} credited to account {} for transaction {}",
+                amount,
+                accountNumber,
+                transactionId
+        );
     }
 
     private String generateAccountNumber() {
