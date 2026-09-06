@@ -2,6 +2,7 @@ package com.banking.transactionservice.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 
@@ -24,13 +25,14 @@ public class OutboxEvent {
     @Column(nullable = false)
     private String eventType;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String payload;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private OutboxEventStatus status;
 
-    @Column(nullable = false)
+    @CreationTimestamp
     private Instant createdAt;
 
     private Instant publishedAt;

@@ -25,5 +25,5 @@ server:
 management:
   endpoints:
     web:
-      explosure:
+      exposure:
         include: health,info

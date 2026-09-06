@@ -11,7 +11,10 @@ import java.util.Map;
 @Slf4j
 public class NotificationService {
 
-    @KafkaListener(topics = "transaction.otp.generated")
+    @KafkaListener(
+            topics = "transaction.otp.generated",
+            groupId = "notification-service"
+    )
     public void consumeOTPGenerated(
             @Payload Map<String, Object> payload) {
 
@@ -62,7 +65,10 @@ public class NotificationService {
     }
 
 
-    @KafkaListener(topics = "transaction.completed")
+    @KafkaListener(
+            topics = "transaction.completed",
+            groupId = "notification-service"
+    )
     public void consumeTransactionCompleted(
             @Payload Map<String, Object> payload) {
 
@@ -119,7 +125,10 @@ public class NotificationService {
     }
 
 
-    @KafkaListener(topics = "fraud.detected")
+    @KafkaListener(
+            topics = "fraud.detected",
+            groupId = "notification-service"
+    )
     public void consumeFraudDetected(
             @Payload Map<String, Object> payload) {
 
@@ -153,7 +162,10 @@ public class NotificationService {
     }
 
 
-    @KafkaListener(topics = "transaction.refunded")
+    @KafkaListener(
+            topics = "transaction.refunded",
+            groupId = "notification-service"
+    )
     public void consumeTransactionRefunded(
             @Payload Map<String, Object> payload) {
 
@@ -193,7 +205,10 @@ public class NotificationService {
     }
 
 
-    @KafkaListener(topics = "payment.completed")
+    @KafkaListener(
+            topics = "payment.completed",
+            groupId = "notification-service"
+    )
     public void consumePaymentCompleted(
             @Payload Map<String, Object> payload) {
 
@@ -229,7 +244,10 @@ public class NotificationService {
     }
 
 
-    @KafkaListener(topics = "payment.failed")
+    @KafkaListener(
+            topics = "payment.failed",
+            groupId = "notification-service"
+    )
     public void consumePaymentFailed(
             @Payload Map<String, Object> payload) {
 

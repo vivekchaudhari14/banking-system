@@ -3,10 +3,7 @@ package com.banking.transactionservice.service;
 import com.banking.transactionservice.client.AccountServiceClient;
 import com.banking.transactionservice.dto.TransactionResponse;
 import com.banking.transactionservice.dto.TransaferRequest;
-import com.banking.transactionservice.entity.OutboxEvent;
-import com.banking.transactionservice.entity.Transaction;
-import com.banking.transactionservice.entity.TransactionStatus;
-import com.banking.transactionservice.entity.TransactionType;
+import com.banking.transactionservice.entity.*;
 import com.banking.transactionservice.event.TransactionCompletedEvent;
 import com.banking.transactionservice.event.TransactionInitiatedEvent;
 import com.banking.transactionservice.repository.OutboxEventRepository;
@@ -14,27 +11,28 @@ import com.banking.transactionservice.repository.TransactionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
-@Transactional
+
 public class TransactionService  {
 
     private final TransactionRepository transactionRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final AccountServiceClient accountServiceClient;
+    private final TransactionPersistenceService transactionPersistenceService;
+    private final TransactionCompletionService transactionCompletionService;
+    private final TransactionInitiationService transactionInitiationService;
     private final ObjectMapper objectMapper;
     private final RedisTemplate<String, String> redisTemplate;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -56,7 +54,12 @@ public class TransactionService  {
 
      */
 
-    public TransactionResponse transfer(TransaferRequest request) {
+
+    public TransactionResponse transfer(
+            TransaferRequest request,
+            String idempotencyKey) {
+
+
 
         log.info(
                 "SAGA START - Transfer: {} -> {} amount: {}",
@@ -64,6 +67,19 @@ public class TransactionService  {
                 request.getReceiverAccountNumber(),
                 request.getAmount()
         );
+
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new IllegalArgumentException("Idempotency-Key is required");
+        }
+
+        Optional<Transaction> existingTransaction =
+                transactionRepository.findByIdempotencyKey(idempotencyKey);
+
+        if (existingTransaction.isPresent()) {
+            log.info("Duplicate request detected for idempotency key: {}", idempotencyKey);
+
+            return mapToResponse(existingTransaction.get());
+        }
 
         // 1. Business validation
         if (request.getSenderAccountNumber()
@@ -97,17 +113,17 @@ public class TransactionService  {
 
         transaction.setType(TransactionType.TRANSFER);
 
-        transaction.setStatus(TransactionStatus.PENDING);
-
         transaction.setDescription(request.getDescription());
 
         transaction.setReferenceNumber(
                 UUID.randomUUID().toString()
         );
 
+        transaction.setIdempotencyKey(idempotencyKey);
+
         // Save transaction
         Transaction savedTransaction =
-                transactionRepository.save(transaction);
+                transactionPersistenceService.createPendingTransaction(transaction);
 
         log.info(
                 "Transaction created with PENDING status: {}",
@@ -119,9 +135,9 @@ public class TransactionService  {
         try {
 
             accountServiceClient.deductBalance(
-                    request.getSenderAccountNumber(),
-                    request.getAmount(),
-                    transaction.getId()
+                    savedTransaction.getSenderAccountNumber(),
+                    savedTransaction.getAmount(),
+                    savedTransaction.getId()
             );
 
             log.info(
@@ -137,15 +153,10 @@ public class TransactionService  {
                     e
             );
 
-            savedTransaction.setStatus(
-                    TransactionStatus.FAILED
-            );
-
-            savedTransaction.setFailureReason(
+            transactionPersistenceService.markFailed(
+                    savedTransaction,
                     "Unable to deduct sender account balance"
             );
-
-            transactionRepository.save(savedTransaction);
 
             throw new RuntimeException(
                     "Unable to process transfer",
@@ -154,40 +165,31 @@ public class TransactionService  {
         }
 
 
-        // 4. Deduction successful
-        savedTransaction.setStatus(
-                TransactionStatus.PROCESSING
-        );
+        try {
 
-        savedTransaction =
-                transactionRepository.save(savedTransaction);
+            savedTransaction =
+                    transactionInitiationService
+                            .markProcessingAndCreateOutbox(savedTransaction);
 
-        log.info(
-                "Transaction status changed to PROCESSING: {}",
-                savedTransaction.getId()
-        );
+        } catch (Exception e) {
 
+            log.error(
+                    "Failed to mark transaction processing/create outbox. transactionId={}",
+                    savedTransaction.getId(),
+                    e
+            );
 
-        // 5. Saga Step 2 - Send transaction to Fraud Service
-        TransactionInitiatedEvent event =
-                new TransactionInitiatedEvent(
-                        savedTransaction.getId(),
-                        savedTransaction.getSenderAccountNumber(),
-                        savedTransaction.getReceiverAccountNumber(),
-                        savedTransaction.getAmount(),
-                        savedTransaction.getDescription()
-                );
+            transactionPersistenceService.markFailed(
+                    savedTransaction,
+                    "Failed to create transaction initiated event"
+            );
 
-        kafkaTemplate.send(
-                TRANSACTION_INITIATED_TOPIC,
-                savedTransaction.getId(),
-                event
-        );
+            throw new RuntimeException(
+                    "Unable to process transfer",
+                    e
+            );
+        }
 
-        log.info(
-                "Transaction initiated event published: {}",
-                savedTransaction.getId()
-        );
 
         return mapToResponse(savedTransaction);
     }
@@ -198,12 +200,17 @@ public class TransactionService  {
                 .orElseThrow(() -> new RuntimeException("Transaction not found")));
     }
 
-    public List<TransactionResponse> getTransactionHistory(String accountNumber) {
-        return transactionRepository.
-                findBySenderAccountNumberOrderByCreatedAtDesc(accountNumber)
+    public List<TransactionResponse> getTransactionHistory(
+            String accountNumber) {
+
+        return transactionRepository
+                .findBySenderAccountNumberOrReceiverAccountNumberOrderByCreatedAtDesc(
+                        accountNumber,
+                        accountNumber
+                )
                 .stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public TransactionResponse verifyOTP(String transactionId, String otp) {
@@ -332,7 +339,7 @@ public class TransactionService  {
         try {
 
             // Step 1: Refund sender
-            accountServiceClient.creditBalance(
+            accountServiceClient.refundBalance(
                     transaction.getSenderAccountNumber(),
                     transaction.getAmount(),
                     transaction.getId() + ":REFUND"
@@ -380,7 +387,7 @@ public class TransactionService  {
                     TRANSACTION_REFUNDED_TOPIC,
                     transaction.getId(),
                     refundEvent
-            );
+            ).get();
 
         } catch (Exception e) {
 
@@ -416,7 +423,13 @@ public class TransactionService  {
                 transaction.getSenderAccountNumber()
         );
 
-        // 1. Ask Account Service to block account
+        // 1. First refund the deducted amount
+        compensateTransaction(
+                transaction,
+                reason
+        );
+
+        // 2. Then notify Account Service to block the account
         Map<String, Object> fraudEvent = new HashMap<>();
 
         fraudEvent.put(
@@ -434,70 +447,41 @@ public class TransactionService  {
                 reason
         );
 
-        kafkaTemplate.send(
-                FRAUD_DETECTED_TOPIC,
-                transaction.getSenderAccountNumber(),
-                fraudEvent
-        );
-
-        // 2. Refund deducted amount
-        compensateTransaction(
-                transaction,
-                reason
-        );
-    }
-
-
-    public void completeTransaction(Transaction transaction) {
-
-        transaction.setStatus(TransactionStatus.COMPLETED);
-        transaction.setCompletedAt(Instant.now());
-
-        transactionRepository.save(transaction);
-
         try {
 
-            TransactionCompletedEvent event =
-                    new TransactionCompletedEvent(
-                            transaction.getId(),
-                            transaction.getSenderAccountNumber(),
-                            transaction.getReceiverAccountNumber(),
-                            transaction.getAmount(),
-                            transaction.getDescription()
-                    );
-
-            String payload =
-                    objectMapper.writeValueAsString(event);
-
-            OutboxEvent outboxEvent =
-                    OutboxEvent.builder()
-                            .aggregateId(transaction.getId())
-                            .eventType("transaction.completed")
-                            .payload(payload)
-                            .status("PENDING")
-                            .createdAt(Instant.now())
-                            .build();
-
-            outboxEventRepository.save(outboxEvent);
+            kafkaTemplate.send(
+                    FRAUD_DETECTED_TOPIC,
+                    transaction.getSenderAccountNumber(),
+                    fraudEvent
+            ).get();
 
             log.info(
-                    "Transaction completed and outbox event created. transactionId={}",
-                    transaction.getId()
+                    "Fraud detected event published. Account block requested: {}",
+                    transaction.getSenderAccountNumber()
             );
 
         } catch (Exception e) {
 
             log.error(
-                    "Failed to create outbox event. transactionId={}",
+                    "Failed to publish fraud.detected event. transactionId={}",
                     transaction.getId(),
                     e
             );
 
             throw new RuntimeException(
-                    "Failed to create transaction completed event",
+                    "Failed to publish fraud detected event",
                     e
             );
         }
+    }
+
+
+    private TransactionResponse completeTransaction(Transaction transaction) {
+
+        Transaction completedTransaction =
+                transactionCompletionService.completeTransaction(transaction);
+
+        return mapToResponse(completedTransaction);
     }
 
     public void processCleanResult(String transactionId) {

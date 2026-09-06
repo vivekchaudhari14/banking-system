@@ -1,6 +1,7 @@
 package com.banking.transactionservice.service;
 
 import com.banking.transactionservice.entity.OutboxEvent;
+import com.banking.transactionservice.entity.OutboxEventStatus;
 import com.banking.transactionservice.repository.OutboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +27,7 @@ public class OutboxEventPublisher {
         List<OutboxEvent> events =
                 outboxEventRepository
                         .findTop100ByStatusOrderByCreatedAtAsc(
-                                "PENDING"
+                                OutboxEventStatus.PENDING
                         );
 
         for (OutboxEvent event : events) {
@@ -41,7 +42,7 @@ public class OutboxEventPublisher {
                         )
                         .get();
 
-                event.setStatus("PUBLISHED");
+                event.setStatus(OutboxEventStatus.PUBLISHED);
                 event.setPublishedAt(Instant.now());
 
                 outboxEventRepository.save(event);

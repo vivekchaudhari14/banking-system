@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
@@ -118,17 +119,54 @@ public class TransactionEventConsumer {
 
             transactionRepository.save(transaction);
 
+            // =====================================================
             // Publish OTP generated event
-            Map<String, Object> otpEvent = Map.of(
-                    "transactionId", transactionId,
-                    "accountNumber", accountNumber,
-                    "otp", otp
+            // =====================================================
+
+            /*
+             * Notification Service expects:
+             *
+             * transactionId
+             * accountNumber
+             * otp
+             * amount
+             * reason
+             *
+             * HashMap is used instead of Map.of()
+             * because Map.of() does not allow null values.
+             */
+            Map<String, Object> otpEvent = new HashMap<>();
+
+            otpEvent.put(
+                    "transactionId",
+                    transactionId
+            );
+
+            otpEvent.put(
+                    "accountNumber",
+                    accountNumber
+            );
+
+            otpEvent.put(
+                    "otp",
+                    otp
+            );
+
+            otpEvent.put(
+                    "amount",
+                    transaction.getAmount()
+            );
+
+            otpEvent.put(
+                    "reason",
+                    reason
             );
 
             kafkaTemplate.send(
                     "transaction.otp.generated",
+                    transactionId,
                     otpEvent
-            );
+            ).get();
 
             log.info(
                     "OTP generated successfully for transactionId={}",
@@ -143,8 +181,6 @@ public class TransactionEventConsumer {
             );
 
             /*
-             * Very important.
-             *
              * Don't swallow exception.
              * Kafka retry/error-handler can handle it.
              */

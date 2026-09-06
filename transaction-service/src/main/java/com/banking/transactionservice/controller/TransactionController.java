@@ -23,11 +23,11 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @PostMapping("/transfer")
-    public ResponseEntity<TransactionResponse> transfer(
+    public TransactionResponse transfer(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody TransaferRequest request) {
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(transactionService.transfer(request));
+        return transactionService.transfer(request, idempotencyKey);
     }
 
     @GetMapping("/{transactionId}")
@@ -53,5 +53,6 @@ public class TransactionController {
                 transactionService.verifyOTP(transactionId,otp)
         );
     }
+
 
 }

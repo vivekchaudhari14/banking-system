@@ -2,7 +2,7 @@ package com.banking.transactionservice.entity;
 
 public enum TransactionType {
     DEPOSIT,
-    WITHDRAWAl,
+    WITHDRAWAL,
     PAYMENT,
     TRANSFER
 }

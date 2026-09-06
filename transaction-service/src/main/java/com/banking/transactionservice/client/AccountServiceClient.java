@@ -26,4 +26,12 @@ public interface AccountServiceClient {
             @RequestParam("amount") BigDecimal amount,
             @RequestParam("transactionId") String transactionId
     );
+
+    @PutMapping("/api/v1/accounts/{accountNumber}/refund")
+    String refundBalance(
+            @PathVariable String accountNumber,
+            @RequestParam BigDecimal amount,
+            @RequestParam String transactionId
+    );
+
 }

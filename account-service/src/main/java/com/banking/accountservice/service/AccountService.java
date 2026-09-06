@@ -1,10 +1,15 @@
 package com.banking.accountservice.service;
 
+import com.banking.accountservice.exception.customexceptions.AccountBlockedException;
+import com.banking.accountservice.exception.customexceptions.BadRequestException;
+import com.banking.accountservice.exception.customexceptions.InsufficientBalanceException;
+import com.banking.accountservice.exception.customexceptions.ResourceNotFoundException;
 import com.banking.accountservice.dto.AccountResponse;
 import com.banking.accountservice.dto.CreateAccountRequest;
 import com.banking.accountservice.entity.*;
 import com.banking.accountservice.repository.AccountRepository;
 import com.banking.accountservice.repository.ProcessedTransactionRepository;
+import org.apache.kafka.common.errors.DuplicateResourceException;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +39,8 @@ public class AccountService {
                     "Account already exists for email: " + request.getEmail()
             );
         }
+
+
 
         Account account = new Account();
 
@@ -82,8 +89,12 @@ public class AccountService {
 
     public void blockAccount(String accountNumber) {
         log.info("Blocking account {}", accountNumber);
+
         Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Account not found: " + accountNumber
+                        ));
 
         account.setStatus(AccountStatus.BLOCKED);
         accountRepository.save(account);
@@ -100,7 +111,7 @@ public class AccountService {
             String transactionId) {
 
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Amount must be greater than zero");
+            throw new BadRequestException("Amount must be greater than zero");
         }
 
         // Idempotency check
@@ -118,11 +129,15 @@ public class AccountService {
                         new RuntimeException("Account not found"));
 
         if (account.getStatus() != AccountStatus.ACTIVE) {
-            throw new RuntimeException("Account is not active");
+            throw new AccountBlockedException(
+                    "Account is not active: " + accountNumber
+            );
         }
 
         if (account.getBalance().compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient balance");
+            throw new InsufficientBalanceException(
+                    "Insufficient balance for account: " + accountNumber
+            );
         }
 
         account.setBalance(
@@ -148,26 +163,23 @@ public class AccountService {
     ) {
 
         if (accountNumber == null || accountNumber.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Account number must not be null or blank"
-            );
+            throw new BadRequestException("Account number is required");
         }
 
         if (transactionId == null || transactionId.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Transaction ID must not be null or blank"
-            );
+            throw new BadRequestException("Transaction ID is required");
         }
 
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException(
-                    "Amount must be greater than zero"
-            );
+            throw new BadRequestException("Amount must be greater than zero");
         }
 
         // Idempotency check
         if (processedTransactionRepository
-                .existsByTransactionIdAndOperation(transactionId, "CREDIT")) {
+                .existsByTransactionIdAndOperation(
+                        transactionId,
+                        AccountOperation.CREDIT
+                )) {
 
             log.info(
                     "Transaction {} already credited. Skipping duplicate request.",
@@ -182,11 +194,12 @@ public class AccountService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Account not found: " + accountNumber
-                        )
-                );
+                        ));
 
         if (account.getStatus() != AccountStatus.ACTIVE) {
-            throw new IllegalStateException("Account is not active");
+            throw new AccountBlockedException(
+                    "Account is not active: " + accountNumber
+            );
         }
 
         // Credit money
@@ -223,6 +236,72 @@ public class AccountService {
         }while (accountRepository.existsByAccountNumber(accountNumber));
 
         return accountNumber;
+    }
+
+
+    public void refundBalance(
+            String accountNumber,
+            BigDecimal amount,
+            String transactionId) {
+
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException(
+                    "Refund amount must be greater than zero"
+            );
+        }
+
+        if (transactionId == null || transactionId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Transaction ID is required"
+            );
+        }
+
+        // Idempotency check
+        if (processedTransactionRepository
+                .existsByTransactionIdAndOperation(
+                        transactionId,
+                        AccountOperation.REFUND)) {
+
+            log.info(
+                    "Refund already processed. transactionId={}",
+                    transactionId
+            );
+
+            return;
+        }
+
+        // IMPORTANT:
+        // Pessimistic lock
+        Account account = accountRepository
+                .findByAccountNumberForUpdate(accountNumber)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Account not found: " + accountNumber
+                        )
+                );
+
+        // Do NOT reject BLOCKED account here.
+        account.setBalance(
+                account.getBalance().add(amount)
+        );
+
+        accountRepository.save(account);
+
+        ProcessedTransaction processed =
+                new ProcessedTransaction();
+
+        processed.setTransactionId(transactionId);
+        processed.setOperation(AccountOperation.REFUND);
+        processed.setProcessedAt(Instant.now());
+
+        processedTransactionRepository.save(processed);
+
+        log.info(
+                "Refund successful. account={}, amount={}, transactionId={}",
+                accountNumber,
+                amount,
+                transactionId
+        );
     }
 
     private AccountResponse mapToResponse(Account account) {

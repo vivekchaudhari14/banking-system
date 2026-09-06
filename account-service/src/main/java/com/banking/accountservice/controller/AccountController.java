@@ -32,16 +32,22 @@ public class AccountController {
 
     }
 
-    @GetMapping("{accountNumber}/balance")
+    @GetMapping("/{accountNumber}")
     public ResponseEntity<AccountResponse> getAccount(
-            @PathVariable String accountNumber ){
-        return  ResponseEntity.ok(accountService.getAccount(accountNumber));
+            @PathVariable String accountNumber) {
+
+        return ResponseEntity.ok(
+                accountService.getAccount(accountNumber)
+        );
     }
 
-    @GetMapping("{accountNumber}")
+    @GetMapping("/{accountNumber}/balance")
     public ResponseEntity<BigDecimal> getBalance(
-            @PathVariable String accountNumber ){
-        return  ResponseEntity.ok(accountService.getBalance(accountNumber));
+            @PathVariable String accountNumber) {
+
+        return ResponseEntity.ok(
+                accountService.getBalance(accountNumber)
+        );
     }
 
     @PutMapping("/{accountNumber}/block")
@@ -92,6 +98,21 @@ public class AccountController {
         );
 
         return ResponseEntity.ok("Balance credited successfully");
+    }
+
+    @PutMapping("/{accountNumber}/refund")
+    public ResponseEntity<String> refundBalance(
+            @PathVariable String accountNumber,
+            @RequestParam BigDecimal amount,
+            @RequestParam String transactionId) {
+
+        accountService.refundBalance(
+                accountNumber,
+                amount,
+                transactionId
+        );
+
+        return ResponseEntity.ok("Amount refunded successfully");
     }
 
 }

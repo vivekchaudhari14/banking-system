@@ -33,6 +33,8 @@ public class Transaction {
     @Column(nullable = false, precision = 15, scale = 2)
     BigDecimal amount;
 
+
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     TransactionType type;
@@ -46,6 +48,9 @@ public class Transaction {
     String failureReason;
 
     String referenceNumber;
+
+    @Column(nullable = false, unique = true, length = 100)
+    String idempotencyKey;
 
     @CreationTimestamp
     LocalDateTime createdAt;

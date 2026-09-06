@@ -30,32 +30,22 @@ public class AccountEventConsumer {
             groupId = "account-service"
     )
     public void handleTransactionCompleted(
-            TransactionCompletedEvent event) {
+            Map<String, Object> event) {
 
-        try {
+        String transactionId =
+                String.valueOf(event.get("transactionId"));
 
-            accountService.creditBalance(
-                    event.getReceiverAccountNumber(),
-                    event.getAmount(),
-                    event.getTransactionId()
-            );
+        String receiverAccountNumber =
+                String.valueOf(event.get("receiverAccountNumber"));
 
-            log.info(
-                    "Transaction {} completed. Receiver {} credited.",
-                    event.getTransactionId(),
-                    event.getReceiverAccountNumber()
-            );
+        BigDecimal amount =
+                new BigDecimal(event.get("amount").toString());
 
-        } catch (Exception e) {
-
-            log.error(
-                    "Receiver credit failed for transaction {}",
-                    event.getTransactionId(),
-                    e
-            );
-
-            throw e;
-        }
+        accountService.creditBalance(
+                receiverAccountNumber,
+                amount,
+                transactionId
+        );
     }
 
     @KafkaListener(topics = "fraud.detected")
