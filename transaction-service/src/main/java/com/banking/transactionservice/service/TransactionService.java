@@ -3,20 +3,23 @@ package com.banking.transactionservice.service;
 import com.banking.transactionservice.client.AccountServiceClient;
 import com.banking.transactionservice.dto.TransactionResponse;
 import com.banking.transactionservice.dto.TransaferRequest;
+import com.banking.transactionservice.entity.OutboxEvent;
 import com.banking.transactionservice.entity.Transaction;
 import com.banking.transactionservice.entity.TransactionStatus;
 import com.banking.transactionservice.entity.TransactionType;
 import com.banking.transactionservice.event.TransactionCompletedEvent;
 import com.banking.transactionservice.event.TransactionInitiatedEvent;
+import com.banking.transactionservice.repository.OutboxEventRepository;
 import com.banking.transactionservice.repository.TransactionRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,11 +29,13 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-
+@Transactional
 public class TransactionService  {
 
     private final TransactionRepository transactionRepository;
+    private final OutboxEventRepository outboxEventRepository;
     private final AccountServiceClient accountServiceClient;
+    private final ObjectMapper objectMapper;
     private final RedisTemplate<String, String> redisTemplate;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -442,53 +447,77 @@ public class TransactionService  {
         );
     }
 
-    private void completeTransaction(Transaction transaction) {
 
-        // 1. Mark transaction completed
-        transaction.setStatus(
-                TransactionStatus.COMPLETED
-        );
+    public void completeTransaction(Transaction transaction) {
 
-        transaction.setCompletedAt(
-                LocalDateTime.now()
-        );
+        transaction.setStatus(TransactionStatus.COMPLETED);
+        transaction.setCompletedAt(Instant.now());
 
         transactionRepository.save(transaction);
 
-        log.info(
-                "Transaction marked COMPLETED: {}",
-                transaction.getId()
-        );
+        try {
 
+            TransactionCompletedEvent event =
+                    new TransactionCompletedEvent(
+                            transaction.getId(),
+                            transaction.getSenderAccountNumber(),
+                            transaction.getReceiverAccountNumber(),
+                            transaction.getAmount(),
+                            transaction.getDescription()
+                    );
 
-        // 2. Publish event for Account Service
-        TransactionCompletedEvent completedEvent =
-                new TransactionCompletedEvent(
-                        transaction.getId(),
-                        transaction.getSenderAccountNumber(),
-                        transaction.getReceiverAccountNumber(),
-                        transaction.getAmount(),
-                        transaction.getDescription()
-                );
+            String payload =
+                    objectMapper.writeValueAsString(event);
 
-        kafkaTemplate.send(
-                TRANSACTION_COMPLETED_TOPIC,
-                transaction.getId(),
-                completedEvent
-        );
+            OutboxEvent outboxEvent =
+                    OutboxEvent.builder()
+                            .aggregateId(transaction.getId())
+                            .eventType("transaction.completed")
+                            .payload(payload)
+                            .status("PENDING")
+                            .createdAt(Instant.now())
+                            .build();
 
-        log.info(
-                "transaction.completed event published: {}",
-                transaction.getId()
-        );
+            outboxEventRepository.save(outboxEvent);
+
+            log.info(
+                    "Transaction completed and outbox event created. transactionId={}",
+                    transaction.getId()
+            );
+
+        } catch (Exception e) {
+
+            log.error(
+                    "Failed to create outbox event. transactionId={}",
+                    transaction.getId(),
+                    e
+            );
+
+            throw new RuntimeException(
+                    "Failed to create transaction completed event",
+                    e
+            );
+        }
     }
 
     public void processCleanResult(String transactionId) {
-        Transaction transaction = transactionRepository.findById(transactionId)
-                .orElseThrow(() -> new RuntimeException("Transaction not found" + transactionId));
 
-        if(transaction.getStatus() != TransactionStatus.PROCESSING) {
-            log.warn("Transaction {} not PROCESSING - skipping",transactionId);
+        Transaction transaction =
+                transactionRepository.findById(transactionId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Transaction not found: " + transactionId
+                                )
+                        );
+
+        if (transaction.getStatus() != TransactionStatus.PROCESSING) {
+
+            log.info(
+                    "Ignoring fraud clean result. transactionId={}, status={}",
+                    transactionId,
+                    transaction.getStatus()
+            );
+
             return;
         }
 

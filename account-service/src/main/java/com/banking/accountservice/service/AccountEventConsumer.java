@@ -30,61 +30,66 @@ public class AccountEventConsumer {
             groupId = "account-service"
     )
     public void handleTransactionCompleted(
-            Map<String, Object> event
-    ) {
-
-        String transactionId =
-                (String) event.get("transactionId");
-
-        String receiverAccountNumber =
-                (String) event.get("receiverAccountNumber");
-
-        BigDecimal amount =
-                new BigDecimal(event.get("amount").toString());
-
-        log.info(
-                "Received transaction.completed: transactionId={}, receiver={}, amount={}",
-                transactionId,
-                receiverAccountNumber,
-                amount
-        );
+            TransactionCompletedEvent event) {
 
         try {
 
             accountService.creditBalance(
-                    receiverAccountNumber,
-                    amount,
-                    transactionId
+                    event.getReceiverAccountNumber(),
+                    event.getAmount(),
+                    event.getTransactionId()
             );
 
             log.info(
-                    "Receiver credited successfully. transactionId={}",
-                    transactionId
+                    "Transaction {} completed. Receiver {} credited.",
+                    event.getTransactionId(),
+                    event.getReceiverAccountNumber()
             );
 
         } catch (Exception e) {
 
             log.error(
-                    "Receiver credit failed. transactionId={}",
-                    transactionId,
+                    "Receiver credit failed for transaction {}",
+                    event.getTransactionId(),
                     e
             );
 
-            // IMPORTANT:
-            // Exception rethrow करायचा
             throw e;
         }
     }
 
     @KafkaListener(topics = "fraud.detected")
-    public void consumeFraudDetected(@Payload Map<String,Object> payload){
-        try{
-            String accountNumber = (String) payload.get("accountNumber");
-            log.info("Fraud detected - blocking  account :{}", accountNumber);
+    public void consumeFraudDetected(
+            @Payload Map<String, Object> payload
+    ) {
+
+        String accountNumber =
+                (String) payload.get("accountNumber");
+
+        try {
+
+            log.info(
+                    "Fraud detected - blocking account: {}",
+                    accountNumber
+            );
+
             accountService.blockAccount(accountNumber);
-        }
-        catch (Exception e){
-            log.error("error blocking account : {} ", e.getMessage());
+
+            log.info(
+                    "Account blocked successfully: {}",
+                    accountNumber
+            );
+
+        } catch (Exception e) {
+
+            log.error(
+                    "Error blocking account. accountNumber={}",
+                    accountNumber,
+                    e
+            );
+
+            // Kafka Retry / DLT साठी
+            throw e;
         }
     }
 

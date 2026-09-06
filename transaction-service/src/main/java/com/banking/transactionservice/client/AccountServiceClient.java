@@ -23,6 +23,7 @@ public interface AccountServiceClient {
     @PutMapping("/api/v1/accounts/{accountNumber}/credit")
     String creditBalance(
             @PathVariable("accountNumber") String accountNumber,
-            @RequestParam("amount") BigDecimal amount
+            @RequestParam("amount") BigDecimal amount,
+            @RequestParam("transactionId") String transactionId
     );
 }

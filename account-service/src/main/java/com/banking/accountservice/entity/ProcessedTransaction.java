@@ -19,6 +19,7 @@ import java.time.Instant;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ProcessedTransaction {
 
     @Id
@@ -28,15 +29,10 @@ public class ProcessedTransaction {
     @Column(name = "transaction_id", nullable = false)
     private String transactionId;
 
-    @Column(name = "operation", nullable = false)
-    private String operation;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AccountOperation operation;
 
-    @Column(name = "processed_at", nullable = false)
+    @Column(nullable = false)
     private Instant processedAt;
-
-    public ProcessedTransaction(String transactionId, String operation) {
-        this.transactionId = transactionId;
-        this.operation = operation;
-        this.processedAt = Instant.now();
-    }
 }

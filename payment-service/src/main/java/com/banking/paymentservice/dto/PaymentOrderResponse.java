@@ -15,11 +15,14 @@ import java.math.BigDecimal;
 public class PaymentOrderResponse {
 
     String paymentId;
-    String rozorpayOrederId;
+
+    String razorpayOrderId;
+
     BigDecimal amount;
+
     String currency;
+
     String status;
+
     String razorpayKeyId;
-
-
 }

@@ -31,7 +31,7 @@ public class Payment {
     @Column(nullable = false)
     String accountNumber;
 
-    @Column(nullable = false,precision=15,scale=2)
+    @Column(nullable = false, precision = 15, scale = 2)
     BigDecimal amount;
 
     @Column(nullable = false)
@@ -39,6 +39,17 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     PaymentStatus status;
+
+    /*
+     * Kafka event publishing status
+     *
+     * PENDING    -> event अजून publish केलेला नाही
+     * PUBLISHED  -> event successfully Kafka ला publish झाला
+     * FAILED     -> Kafka publish fail झाला
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    EventStatus eventStatus;
 
     String description;
 
@@ -49,7 +60,4 @@ public class Payment {
 
     @UpdateTimestamp
     LocalDateTime updatedAt;
-
-
-
 }

@@ -4,20 +4,27 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="Some bugs and issues resolve">
-      <change afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/config/KafkaConsumerConfig.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/entity/ProcessedTransaction.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/repository/ProcessedTransactionRepository.java" afterDir="false" />
+    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="Kafka Retry Configuration and solve some issues">
+      <change afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/entity/AccountOperation.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/entity/EventStatus.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/entity/OutboxEvent.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/repository/OutboxEventRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/OutboxEventPublisher.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/controller/AccountController.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/controller/AccountController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/repository/AccountRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/repository/AccountRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/config/KafkaConsumerConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/config/KafkaConsumerConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/entity/Account.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/entity/Account.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/entity/ProcessedTransaction.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/entity/ProcessedTransaction.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/repository/ProcessedTransactionRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/repository/ProcessedTransactionRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountEventConsumer.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountEventConsumer.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountService.java" beforeDir="false" afterPath="$PROJECT_DIR$/account-service/src/main/java/com/banking/accountservice/service/AccountService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notification-service/src/main/java/com/banking/notificationservice/service/NotificationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/notification-service/src/main/java/com/banking/notificationservice/service/NotificationService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/payment-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/payment-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/controller/PaymentController.java" beforeDir="false" afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/controller/PaymentController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/dto/PaymentOrderResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/dto/PaymentOrderResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/entity/Payment.java" beforeDir="false" afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/entity/Payment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/service/PaymentService.java" beforeDir="false" afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/service/PaymentService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/TransactionServiceApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/TransactionServiceApplication.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/client/AccountServiceClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/client/AccountServiceClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/controller/TransactionController.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/controller/TransactionController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/dto/TransaferRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/dto/TransaferRequest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/event/TransactionCompletedEvent.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/event/TransactionCompletedEvent.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/repository/TransactionRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/repository/TransactionRepository.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionEventConsumer.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionEventConsumer.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionService.java" afterDir="false" />
     </list>
@@ -29,9 +36,9 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Enum" />
         <option value="Interface" />
         <option value="Class" />
+        <option value="Enum" />
       </list>
     </option>
   </component>
@@ -240,7 +247,8 @@
     <MESSAGE value="Transaction work done" />
     <MESSAGE value="Paymentservice done" />
     <MESSAGE value="Some bugs and issues resolve" />
-    <option name="LAST_COMMIT_MESSAGE" value="Some bugs and issues resolve" />
+    <MESSAGE value="Kafka Retry Configuration and solve some issues" />
+    <option name="LAST_COMMIT_MESSAGE" value="Kafka Retry Configuration and solve some issues" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

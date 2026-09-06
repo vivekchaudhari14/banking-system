@@ -2,10 +2,7 @@ package com.banking.accountservice.service;
 
 import com.banking.accountservice.dto.AccountResponse;
 import com.banking.accountservice.dto.CreateAccountRequest;
-import com.banking.accountservice.entity.Account;
-import com.banking.accountservice.entity.AccountStatus;
-import com.banking.accountservice.entity.AccountType;
-import com.banking.accountservice.entity.ProcessedTransaction;
+import com.banking.accountservice.entity.*;
 import com.banking.accountservice.repository.AccountRepository;
 import com.banking.accountservice.repository.ProcessedTransactionRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,13 +10,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import javax.security.auth.login.AccountException;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
+import java.time.Instant;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@Transactional
 public class AccountService {
 
     private final AccountRepository accountRepository;
@@ -27,13 +25,18 @@ public class AccountService {
     private static SecureRandom secureRandom = new SecureRandom();
 
     public AccountResponse createAccount(CreateAccountRequest request) {
-        log.info("Creating account request {}", request.getEmail());
 
-        if(accountRepository.existsByEmail(request.getEmail())){
-            throw new RuntimeException("Account already exists for this email"+request.getEmail());
+        log.info("Creating account request for email={}", request.getEmail());
+
+        if (accountRepository.existsByEmail(request.getEmail())) {
+
+            throw new DuplicateResourceException(
+                    "Account already exists for email: " + request.getEmail()
+            );
         }
 
-        Account  account = new Account();
+        Account account = new Account();
+
         account.setAccountHolderName(request.getAccountHolderName());
         account.setEmail(request.getEmail());
         account.setPhoneNumber(request.getPhoneNumber());
@@ -41,14 +44,20 @@ public class AccountService {
         account.setStatus(AccountStatus.ACTIVE);
         account.setBalance(request.getInitialDeposit());
         account.setAccountNumber(generateAccountNumber());
+
         account.setDailyTransactionLimit(
                 request.getAccountType() == AccountType.SAVINGS
-        ? new BigDecimal("100000")
-                : new BigDecimal("500000")
+                        ? new BigDecimal("100000")
+                        : new BigDecimal("500000")
         );
 
         Account savedAccount = accountRepository.save(account);
-        log.info("Account created: {}", savedAccount.getAccountNumber());
+
+        log.info(
+                "Account created successfully: {}",
+                savedAccount.getAccountNumber()
+        );
+
         return mapToResponse(savedAccount);
     }
 
@@ -70,6 +79,7 @@ public class AccountService {
         blocked Account - called by Fraud Detection Service via kafka
         @Param accountNumber;
      */
+
     public void blockAccount(String accountNumber) {
         log.info("Blocking account {}", accountNumber);
         Account account = accountRepository.findByAccountNumber(accountNumber)
@@ -82,12 +92,12 @@ public class AccountService {
 
     }
 
-    @Transactional
+
+
     public void deductBalance(
             String accountNumber,
             BigDecimal amount,
-            String transactionId
-    ) {
+            String transactionId) {
 
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Amount must be greater than zero");
@@ -95,66 +105,64 @@ public class AccountService {
 
         // Idempotency check
         if (processedTransactionRepository
-                .existsByTransactionIdAndOperation(transactionId, "DEBIT")) {
-
-            log.info(
-                    "Transaction {} already debited. Skipping duplicate request.",
-                    transactionId
-            );
+                .existsByTransactionIdAndOperation(
+                        transactionId,
+                        AccountOperation.DEBIT)) {
 
             return;
         }
 
-        // Pessimistic lock
         Account account = accountRepository
                 .findByAccountNumberForUpdate(accountNumber)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Account not found: " + accountNumber
-                        )
-                );
+                        new RuntimeException("Account not found"));
 
         if (account.getStatus() != AccountStatus.ACTIVE) {
-            throw new IllegalStateException("Account is not active");
+            throw new RuntimeException("Account is not active");
         }
 
         if (account.getBalance().compareTo(amount) < 0) {
-            throw new IllegalStateException("Insufficient balance");
+            throw new RuntimeException("Insufficient balance");
         }
 
-        // Deduct money
         account.setBalance(
                 account.getBalance().subtract(amount)
         );
 
         accountRepository.save(account);
 
-        // Save idempotency record
-        ProcessedTransaction processedTransaction =
-                new ProcessedTransaction(
-                        transactionId,
-                        "DEBIT"
-                );
+        ProcessedTransaction processed = ProcessedTransaction.builder()
+                .transactionId(transactionId)
+                .operation(AccountOperation.DEBIT)
+                .processedAt(Instant.now())
+                .build();
 
-        processedTransactionRepository.save(processedTransaction);
-
-        log.info(
-                "Amount {} deducted from account {} for transaction {}",
-                amount,
-                accountNumber,
-                transactionId
-        );
+        processedTransactionRepository.save(processed);
     }
 
-    @Transactional
+
     public void creditBalance(
             String accountNumber,
             BigDecimal amount,
             String transactionId
     ) {
 
+        if (accountNumber == null || accountNumber.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Account number must not be null or blank"
+            );
+        }
+
+        if (transactionId == null || transactionId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Transaction ID must not be null or blank"
+            );
+        }
+
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Amount must be greater than zero");
+            throw new IllegalArgumentException(
+                    "Amount must be greater than zero"
+            );
         }
 
         // Idempotency check
@@ -189,13 +197,13 @@ public class AccountService {
         accountRepository.save(account);
 
         // Save idempotency record
-        ProcessedTransaction processedTransaction =
-                new ProcessedTransaction(
-                        transactionId,
-                        "CREDIT"
-                );
+        ProcessedTransaction processed = ProcessedTransaction.builder()
+                .transactionId(transactionId)
+                .operation(AccountOperation.CREDIT)
+                .processedAt(Instant.now())
+                .build();
 
-        processedTransactionRepository.save(processedTransaction);
+        processedTransactionRepository.save(processed);
 
         log.info(
                 "Amount {} credited to account {} for transaction {}",
