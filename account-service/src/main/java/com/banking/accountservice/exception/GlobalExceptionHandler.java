@@ -1,9 +1,6 @@
 package com.banking.accountservice.exception;
 
-import com.banking.accountservice.exception.customexceptions.AccountBlockedException;
-import com.banking.accountservice.exception.customexceptions.BadRequestException;
-import com.banking.accountservice.exception.customexceptions.InsufficientBalanceException;
-import com.banking.accountservice.exception.customexceptions.ResourceNotFoundException;
+import com.banking.accountservice.exception.customexceptions.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -69,5 +66,14 @@ public class GlobalExceptionHandler {
                         "error", "ACCOUNT_BLOCKED",
                         "message", ex.getMessage()
                 ));
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<?> handleDuplicateResource(
+            DuplicateResourceException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ex.getMessage());
     }
 }

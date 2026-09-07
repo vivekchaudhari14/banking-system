@@ -1,17 +1,9 @@
 spring:
-  application:
-    name: fraud-detection-service
-
-  data:
-    redis:
-      host: localhost
-      port: 6379
-
   kafka:
     bootstrap-servers: localhost:9092
 
     consumer:
-      group-id: fraud-service-group
+      group-id: fraud-detection-group
       auto-offset-reset: earliest
 
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer

@@ -61,6 +61,8 @@ public class NotificationService {
                     "Error sending OTP notification",
                     e
             );
+
+            throw e;
         }
     }
 
@@ -121,6 +123,8 @@ public class NotificationService {
                     "Error sending transaction notification",
                     e
             );
+
+            throw e;
         }
     }
 
@@ -158,6 +162,8 @@ public class NotificationService {
                     "Error sending fraud alert",
                     e
             );
+
+            throw e;
         }
     }
 
@@ -201,6 +207,8 @@ public class NotificationService {
                     "Error sending refund notification",
                     e
             );
+
+            throw e;
         }
     }
 
@@ -240,6 +248,8 @@ public class NotificationService {
                     "Error sending payment notification",
                     e
             );
+
+            throw e;
         }
     }
 
@@ -275,6 +285,8 @@ public class NotificationService {
                     "Error sending payment failure notification",
                     e
             );
+
+            throw e;
         }
     }
 

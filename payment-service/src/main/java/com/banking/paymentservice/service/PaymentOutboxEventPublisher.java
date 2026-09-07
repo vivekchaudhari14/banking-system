@@ -1,38 +1,41 @@
-package com.banking.transactionservice.service;
+package com.banking.paymentservice.service;
 
-import com.banking.transactionservice.entity.OutboxEvent;
-import com.banking.transactionservice.entity.OutboxEventStatus;
-import com.banking.transactionservice.repository.OutboxEventRepository;
+import com.banking.paymentservice.entity.EventStatus;
+import com.banking.paymentservice.entity.PaymentOutboxEvent;
+import com.banking.paymentservice.repository.PaymentOutboxEventRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
-public class OutboxEventPublisher {
+@RequiredArgsConstructor
+public class PaymentOutboxEventPublisher {
 
-    private final OutboxEventRepository outboxEventRepository;
+    private final PaymentOutboxEventRepository outboxEventRepository;
 
     private final KafkaTemplate<String, String> kafkaTemplate;
+
 
     @Scheduled(fixedDelay = 5000)
     public void publishPendingEvents() {
 
-        List<OutboxEvent> events =
-                outboxEventRepository.findTop100ByStatusOrderByCreatedAtAsc(
-                        OutboxEventStatus.PENDING);
+        List<PaymentOutboxEvent> events =
+                outboxEventRepository
+                        .findTop100ByStatusOrderByCreatedAtAsc(
+                                EventStatus.PENDING
+                        );
 
-        for (OutboxEvent event : events) {
+        for (PaymentOutboxEvent event : events) {
 
             try {
 
-                // 1. Publish event to Kafka
                 kafkaTemplate
                         .send(
                                 event.getEventType(),
@@ -41,14 +44,15 @@ public class OutboxEventPublisher {
                         )
                         .get();
 
-                // 2. Kafka publish successful
-                event.setStatus(OutboxEventStatus.PUBLISHED);
+                event.setStatus(
+                        EventStatus.PUBLISHED
+                );
 
-                // 3. Mark event as published in DB
                 outboxEventRepository.save(event);
 
                 log.info(
-                        "Outbox event published successfully. eventId={}, eventType={}, aggregateId={}",
+                        "Payment outbox event published successfully. " +
+                                "eventId={}, eventType={}, aggregateId={}",
                         event.getId(),
                         event.getEventType(),
                         event.getAggregateId()
@@ -56,15 +60,17 @@ public class OutboxEventPublisher {
 
             } catch (Exception e) {
 
-                // Keep status as PENDING.
-                // Scheduler will retry this event in the next execution.
                 log.error(
-                        "Failed to publish outbox event. eventId={}, eventType={}, aggregateId={}",
+                        "Failed to publish payment outbox event. " +
+                                "eventId={}, eventType={}, aggregateId={}",
                         event.getId(),
                         event.getEventType(),
                         event.getAggregateId(),
                         e
                 );
+
+                // Keep PENDING.
+                // Next scheduler execution will retry.
             }
         }
     }

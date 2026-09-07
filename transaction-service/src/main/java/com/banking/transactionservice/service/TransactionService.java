@@ -4,22 +4,16 @@ import com.banking.transactionservice.client.AccountServiceClient;
 import com.banking.transactionservice.dto.TransactionResponse;
 import com.banking.transactionservice.dto.TransaferRequest;
 import com.banking.transactionservice.entity.*;
-import com.banking.transactionservice.event.TransactionCompletedEvent;
-import com.banking.transactionservice.event.TransactionInitiatedEvent;
 import com.banking.transactionservice.repository.OutboxEventRepository;
 import com.banking.transactionservice.repository.TransactionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
+
 
 @Service
 @Slf4j
@@ -33,11 +27,13 @@ public class TransactionService  {
     private final TransactionPersistenceService transactionPersistenceService;
     private final TransactionCompletionService transactionCompletionService;
     private final TransactionInitiationService transactionInitiationService;
+    private final TransactionCompensationService compensationService;
     private final ObjectMapper objectMapper;
     private final RedisTemplate<String, String> redisTemplate;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    private static final String OTP_KEY_PREFIX = "verification:otp:";
+    private static final String OTP_KEY_PREFIX = "transaction:otp:";
+    private static final String OTP_ATTEMPT_KEY_PREFIX = "transaction:otp:attempts:";
     private static final String TRANSACTION_INITIATED_TOPIC = "transaction.initiated";
     private static final String TRANSACTION_COMPLETED_TOPIC = "transaction.completed";
     private static final String TRANSACTION_REFUNDED_TOPIC = "transaction.refunded";
@@ -249,7 +245,7 @@ public class TransactionService  {
                     transactionId
             );
 
-            compensateTransaction(
+            compensationService.compensateTransaction(
                     transaction,
                     "OTP expired - transaction cancelled and amount refunded"
             );
@@ -263,8 +259,7 @@ public class TransactionService  {
 
         if (!storedOtp.equals(otp)) {
 
-            String attemptKey =
-                    "verification:attempts:" + transactionId;
+            String attemptKey = OTP_ATTEMPT_KEY_PREFIX + transactionId;
 
             Long attempts = redisTemplate.opsForValue()
                     .increment(attemptKey);
@@ -314,8 +309,7 @@ public class TransactionService  {
         redisTemplate.delete(otpKey);
 
         // Delete attempt counter
-        String attemptKey =
-                "verification:attempts:" + transactionId;
+        String attemptKey = OTP_ATTEMPT_KEY_PREFIX + transactionId;
 
         redisTemplate.delete(attemptKey);
 
@@ -325,93 +319,6 @@ public class TransactionService  {
         return mapToResponse(transaction);
     }
 
-    private void compensateTransaction(
-            Transaction transaction,
-            String reason) {
-
-        log.warn(
-                "SAGA COMPENSATION START - transaction: {} sender: {} amount: {}",
-                transaction.getId(),
-                transaction.getSenderAccountNumber(),
-                transaction.getAmount()
-        );
-
-        try {
-
-            // Step 1: Refund sender
-            accountServiceClient.refundBalance(
-                    transaction.getSenderAccountNumber(),
-                    transaction.getAmount(),
-                    transaction.getId() + ":REFUND"
-            );
-
-            log.info(
-                    "SAGA COMPENSATION - {} refunded to {}",
-                    transaction.getAmount(),
-                    transaction.getSenderAccountNumber()
-            );
-
-            // Step 2: Mark transaction failed
-            transaction.setStatus(TransactionStatus.FAILED);
-
-            transaction.setFailureReason(
-                    reason + " - Amount refunded"
-            );
-
-            transactionRepository.save(transaction);
-
-            // Step 3: Notification event
-            Map<String, Object> refundEvent = new HashMap<>();
-
-            refundEvent.put(
-                    "transactionId",
-                    transaction.getId()
-            );
-
-            refundEvent.put(
-                    "senderAccountNumber",
-                    transaction.getSenderAccountNumber()
-            );
-
-            refundEvent.put(
-                    "amount",
-                    transaction.getAmount()
-            );
-
-            refundEvent.put(
-                    "reason",
-                    reason
-            );
-
-            kafkaTemplate.send(
-                    TRANSACTION_REFUNDED_TOPIC,
-                    transaction.getId(),
-                    refundEvent
-            ).get();
-
-        } catch (Exception e) {
-
-            log.error(
-                    "SAGA COMPENSATION FAILED - transaction: {}",
-                    transaction.getId(),
-                    e
-            );
-
-            transaction.setStatus(TransactionStatus.FLAGGED);
-
-            transaction.setFailureReason(
-                    reason +
-                            " - COMPENSATION FAILED. Manual reconciliation required."
-            );
-
-            transactionRepository.save(transaction);
-
-            throw new RuntimeException(
-                    "Transaction compensation failed",
-                    e
-            );
-        }
-    }
 
     private void blockAccountAndCompensate(
             Transaction transaction,
@@ -424,10 +331,8 @@ public class TransactionService  {
         );
 
         // 1. First refund the deducted amount
-        compensateTransaction(
-                transaction,
-                reason
-        );
+
+        compensationService.compensateTransaction(transaction, reason);
 
         // 2. Then notify Account Service to block the account
         Map<String, Object> fraudEvent = new HashMap<>();

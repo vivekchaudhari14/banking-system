@@ -1,10 +1,13 @@
 package com.banking.paymentservice.service;
 
 import com.banking.paymentservice.dto.CreatePaymentRequest;
+import com.banking.paymentservice.entity.PaymentOutboxEvent;
+import com.banking.paymentservice.repository.PaymentOutboxEventRepository;
 import com.razorpay.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 import com.banking.paymentservice.dto.PaymentOrderResponse;
@@ -19,14 +22,9 @@ import com.razorpay.RazorpayException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.json.JSONObject;
-
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -37,9 +35,7 @@ import java.util.UUID;
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
-
-    private final KafkaTemplate<String, Object> kafkaTemplate;
-
+    private final PaymentOutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
 
 
@@ -48,6 +44,9 @@ public class PaymentService {
 
     @Value("${razorpay.key.secret}")
     private String keySecret;
+
+    @Value("${razorpay.webhook.secret}")
+    private String webhookSecret;
 
 
     /*
@@ -89,10 +88,10 @@ public class PaymentService {
         // 2. Convert amount into paise
         // -----------------------------------------------------
 
-        int convertedAmount =
+        long convertedAmount =
                 request.getAmount()
-                        .multiply(BigDecimal.valueOf(100))
-                        .intValue();
+                        .movePointRight(2)
+                        .longValueExact();
 
 
         // -----------------------------------------------------
@@ -215,6 +214,7 @@ public class PaymentService {
     // RAZORPAY WEBHOOK
     // =========================================================
 
+    @Transactional
     public void handleWebhook(
             String rawPayload,
             String signature) {
@@ -225,7 +225,7 @@ public class PaymentService {
             Utils.verifyWebhookSignature(
                     rawPayload,
                     signature,
-                    keySecret
+                    webhookSecret
             );
 
             log.info("Razorpay webhook signature verified successfully");
@@ -475,71 +475,31 @@ public class PaymentService {
             // 7. Publish Kafka event
             // -------------------------------------------------
 
-            try {
+            PaymentOutboxEvent outboxEvent =
+                    new PaymentOutboxEvent();
 
-                kafkaTemplate.send(
-                        PAYMENT_COMPLETED_TOPIC,
-                        payment.getId(),
-                        event
-                ).get();
+            outboxEvent.setEventType(
+                    PAYMENT_COMPLETED_TOPIC
+            );
 
+            outboxEvent.setAggregateId(
+                    payment.getId()
+            );
 
-                // -------------------------------------------------
-                // 8. Kafka publish SUCCESS
-                // -------------------------------------------------
+            outboxEvent.setPayload(
+                    objectMapper.writeValueAsString(event)
+            );
 
-                payment.setEventStatus(
-                        EventStatus.PUBLISHED
-                );
+            outboxEvent.setStatus(
+                    EventStatus.PENDING
+            );
 
+            outboxEventRepository.save(outboxEvent);
 
-                paymentRepository.save(
-                        payment
-                );
-
-
-                log.info(
-                        "payment.completed event published successfully. " +
-                                "Payment ID: {}",
-                        payment.getId()
-                );
-
-
-            } catch (Exception kafkaException) {
-
-
-                // -------------------------------------------------
-                // 9. Kafka publish FAILED
-                // -------------------------------------------------
-
-                log.error(
-                        "Failed to publish payment.completed. " +
-                                "Payment ID: {}",
-                        payment.getId(),
-                        kafkaException
-                );
-
-
-                payment.setEventStatus(
-                        EventStatus.FAILED
-                );
-
-
-                paymentRepository.save(
-                        payment
-                );
-
-
-                /*
-                 * Exception throw करत नाही.
-                 *
-                 * कारण payment DB मध्ये COMPLETED आहे.
-                 *
-                 * पुढचा duplicate webhook आल्यावर
-                 * EventStatus = FAILED असल्यामुळे
-                 * event पुन्हा publish करण्याची संधी मिळेल.
-                 */
-            }
+            log.info(
+                    "payment.completed outbox event created. Payment ID: {}",
+                    payment.getId()
+            );
 
 
         } catch (Exception e) {
@@ -549,6 +509,8 @@ public class PaymentService {
                     e.getMessage(),
                     e
             );
+
+            throw new RuntimeException("Payment success processing failed", e);
         }
     }
 
@@ -691,60 +653,31 @@ public class PaymentService {
             // 7. Publish payment.failed
             // -------------------------------------------------
 
-            try {
+            PaymentOutboxEvent outboxEvent =
+                    new PaymentOutboxEvent();
 
-                kafkaTemplate.send(
-                        PAYMENT_FAILED_TOPIC,
-                        payment.getId(),
-                        event
-                ).get();
+            outboxEvent.setEventType(
+                    PAYMENT_FAILED_TOPIC
+            );
 
+            outboxEvent.setAggregateId(
+                    payment.getId()
+            );
 
-                // -------------------------------------------------
-                // 8. Kafka SUCCESS
-                // -------------------------------------------------
+            outboxEvent.setPayload(
+                    objectMapper.writeValueAsString(event)
+            );
 
-                payment.setEventStatus(
-                        EventStatus.PUBLISHED
-                );
+            outboxEvent.setStatus(
+                    EventStatus.PENDING
+            );
 
+            outboxEventRepository.save(outboxEvent);
 
-                paymentRepository.save(
-                        payment
-                );
-
-
-                log.info(
-                        "payment.failed event published successfully. " +
-                                "Payment ID: {}",
-                        payment.getId()
-                );
-
-
-            } catch (Exception kafkaException) {
-
-
-                // -------------------------------------------------
-                // 9. Kafka FAILED
-                // -------------------------------------------------
-
-                log.error(
-                        "Failed to publish payment.failed. " +
-                                "Payment ID: {}",
-                        payment.getId(),
-                        kafkaException
-                );
-
-
-                payment.setEventStatus(
-                        EventStatus.FAILED
-                );
-
-
-                paymentRepository.save(
-                        payment
-                );
-            }
+            log.info(
+                    "payment.failed outbox event created. Payment ID: {}",
+                    payment.getId()
+            );
 
 
         } catch (Exception e) {
@@ -754,6 +687,8 @@ public class PaymentService {
                     e.getMessage(),
                     e
             );
+
+            throw new RuntimeException("Payment failure processing failed", e);
         }
     }
 
@@ -762,7 +697,6 @@ public class PaymentService {
     // EXTRACT PAYMENT DATA
     // =========================================================
 
-    @SuppressWarnings("unchecked")
     @SuppressWarnings("unchecked")
     private Map<String, Object> extractPaymentData(
             Map<String, Object> payload) {

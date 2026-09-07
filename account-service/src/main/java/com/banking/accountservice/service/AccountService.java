@@ -4,12 +4,12 @@ import com.banking.accountservice.exception.customexceptions.AccountBlockedExcep
 import com.banking.accountservice.exception.customexceptions.BadRequestException;
 import com.banking.accountservice.exception.customexceptions.InsufficientBalanceException;
 import com.banking.accountservice.exception.customexceptions.ResourceNotFoundException;
+import com.banking.accountservice.exception.customexceptions.DuplicateResourceException;
 import com.banking.accountservice.dto.AccountResponse;
 import com.banking.accountservice.dto.CreateAccountRequest;
 import com.banking.accountservice.entity.*;
 import com.banking.accountservice.repository.AccountRepository;
 import com.banking.accountservice.repository.ProcessedTransactionRepository;
-import org.apache.kafka.common.errors.DuplicateResourceException;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,14 +70,14 @@ public class AccountService {
 
     public AccountResponse getAccount (String accountNumber) {
         Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
 
         return mapToResponse(account);
     }
 
     public BigDecimal getBalance(String accountNumber) {
         Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
 
         return account.getBalance();
     }
@@ -110,47 +110,53 @@ public class AccountService {
             BigDecimal amount,
             String transactionId) {
 
+        if (accountNumber == null || accountNumber.isBlank()) {
+            throw new BadRequestException("Account number is required");
+        }
+
+        if (transactionId == null || transactionId.isBlank()) {
+            throw new BadRequestException("Transaction ID is required");
+        }
+
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("Amount must be greater than zero");
         }
 
         // Idempotency check
+        Account account = accountRepository
+                .findByAccountNumberForUpdate(accountNumber)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Account not found"));
+
+// Idempotency check AFTER lock
         if (processedTransactionRepository
                 .existsByTransactionIdAndOperation(
                         transactionId,
                         AccountOperation.DEBIT)) {
-
             return;
         }
 
-        Account account = accountRepository
-                .findByAccountNumberForUpdate(accountNumber)
-                .orElseThrow(() ->
-                        new RuntimeException("Account not found"));
-
-        if (account.getStatus() != AccountStatus.ACTIVE) {
-            throw new AccountBlockedException(
-                    "Account is not active: " + accountNumber
-            );
-        }
-
+// Balance check
         if (account.getBalance().compareTo(amount) < 0) {
             throw new InsufficientBalanceException(
                     "Insufficient balance for account: " + accountNumber
             );
         }
 
+// Deduct
         account.setBalance(
                 account.getBalance().subtract(amount)
         );
 
         accountRepository.save(account);
 
-        ProcessedTransaction processed = ProcessedTransaction.builder()
-                .transactionId(transactionId)
-                .operation(AccountOperation.DEBIT)
-                .processedAt(Instant.now())
-                .build();
+// Save idempotency record
+        ProcessedTransaction processed =
+                ProcessedTransaction.builder()
+                        .transactionId(transactionId)
+                        .operation(AccountOperation.DEBIT)
+                        .processedAt(Instant.now())
+                        .build();
 
         processedTransactionRepository.save(processed);
     }
@@ -245,13 +251,13 @@ public class AccountService {
             String transactionId) {
 
         if (amount == null || amount.signum() <= 0) {
-            throw new IllegalArgumentException(
+            throw new BadRequestException(
                     "Refund amount must be greater than zero"
             );
         }
 
         if (transactionId == null || transactionId.isBlank()) {
-            throw new IllegalArgumentException(
+            throw new BadRequestException(
                     "Transaction ID is required"
             );
         }
@@ -275,7 +281,7 @@ public class AccountService {
         Account account = accountRepository
                 .findByAccountNumberForUpdate(accountNumber)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new ResourceNotFoundException(
                                 "Account not found: " + accountNumber
                         )
                 );

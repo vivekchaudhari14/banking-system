@@ -27,7 +27,7 @@ public class AccountEventConsumer {
 
     @KafkaListener(
             topics = "transaction.completed",
-            groupId = "account-service"
+            groupId = "account-service-group"
     )
     public void handleTransactionCompleted(
             Map<String, Object> event) {
@@ -48,7 +48,10 @@ public class AccountEventConsumer {
         );
     }
 
-    @KafkaListener(topics = "fraud.detected")
+    @KafkaListener(
+            topics = "fraud.detected",
+            groupId = "account-service-group"
+    )
     public void consumeFraudDetected(
             @Payload Map<String, Object> payload
     ) {

@@ -164,9 +164,8 @@ public class TransactionEventConsumer {
 
             kafkaTemplate.send(
                     "transaction.otp.generated",
-                    transactionId,
                     otpEvent
-            ).get();
+            );
 
             log.info(
                     "OTP generated successfully for transactionId={}",

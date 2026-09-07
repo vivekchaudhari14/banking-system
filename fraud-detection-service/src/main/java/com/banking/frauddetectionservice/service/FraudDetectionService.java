@@ -23,7 +23,7 @@ public class FraudDetectionService {
 
     private final AccountServiceClient accountServiceClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Value("${fraud.max-transaction-per-minute}")
     private int maxTransactionsPerMinute;

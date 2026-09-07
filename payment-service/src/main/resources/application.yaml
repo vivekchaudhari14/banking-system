@@ -20,7 +20,7 @@ spring:
     bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 server:
   port: 8083
@@ -29,7 +29,7 @@ server:
 razorpay:
   key-id: ${RAZORPAY_KEY_ID}
   key-secret: ${RAZORPAY_KEY_SECRET}
-  webhook-secret:
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
 
 management:
   endpoints:
