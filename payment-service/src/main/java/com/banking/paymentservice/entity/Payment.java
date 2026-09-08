@@ -24,9 +24,11 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.UUID)
     String id;
 
-    String razorpayOrderId;
+    @Column(name = "razorpay_order_id", nullable = false, unique = true)
+    private String razorpayOrderId;
 
-    String razorpayPaymentId;
+    @Column(name = "razorpay_payment_id", unique = true)
+    private String razorpayPaymentId;
 
     @Column(nullable = false)
     String accountNumber;

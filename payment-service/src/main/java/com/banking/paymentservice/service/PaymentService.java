@@ -381,21 +381,7 @@ public class PaymentService {
              * तर हा duplicate webhook आहे.
              */
 
-            if (PaymentStatus.COMPLETED.equals(
-                    payment.getStatus())
-                    &&
-                    EventStatus.PUBLISHED.equals(
-                            payment.getEventStatus())) {
 
-                log.info(
-                        "Payment already completed and event " +
-                                "already published. Ignoring duplicate webhook. " +
-                                "Payment ID: {}",
-                        payment.getId()
-                );
-
-                return;
-            }
 
 
             // -------------------------------------------------
@@ -566,21 +552,6 @@ public class PaymentService {
             // -------------------------------------------------
             // 3. Idempotency check
             // -------------------------------------------------
-
-            if (PaymentStatus.FAILED.equals(
-                    payment.getStatus())
-                    &&
-                    EventStatus.PUBLISHED.equals(
-                            payment.getEventStatus())) {
-
-                log.info(
-                        "Payment failure already processed. " +
-                                "Ignoring duplicate webhook. Payment ID: {}",
-                        payment.getId()
-                );
-
-                return;
-            }
 
 
             // -------------------------------------------------

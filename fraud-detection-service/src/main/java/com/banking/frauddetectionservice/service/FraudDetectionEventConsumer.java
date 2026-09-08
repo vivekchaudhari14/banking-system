@@ -6,6 +6,9 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.Map;
 
 @Service
@@ -15,6 +18,7 @@ import java.util.Map;
 public class FraudDetectionEventConsumer {
 
     private final FraudDetectionService fraudDetectionService;
+    private final ObjectMapper objectMapper;
 
     /*
 
@@ -24,21 +28,33 @@ public class FraudDetectionEventConsumer {
 
      */
 
-    @KafkaListener(topics = "transaction.initiated", groupId = "fraud-detection-group")
-    public void consumeTransactionInitiated(
-            @Payload Map<String, Object> payload ) {
-        log.info("Received transaction for fraud check: {}", payload.get("transactionId"));
+    @KafkaListener(
+            topics = "transaction.initiated",
+            groupId = "fraud-detection-group"
+    )
+    public void consumeTransactionInitiated(@Payload String payload) {
+
+        log.info("🔥 TRANSACTION.INITIATED RECEIVED: {}", payload);
+
+        log.info("Received transaction.initiated event: {}", payload);
 
         try {
+            Map<String, Object> transaction =
+                    objectMapper.readValue(
+                            payload,
+                            new TypeReference<Map<String, Object>>() {}
+                    );
 
-            fraudDetectionService.checkTransaction(payload);
-
-        }catch (Exception e) {
-            log.error(
-                    "Error processing transaction for fraud check",
-                    e
+            log.info(
+                    "Received transaction for fraud check: {}",
+                    transaction.get("transactionId")
             );
-            throw e;
+
+            fraudDetectionService.checkTransaction(transaction);
+
+        } catch (Exception e) {
+            log.error("Error processing transaction for fraud check", e);
+            throw new RuntimeException(e);
         }
     }
 

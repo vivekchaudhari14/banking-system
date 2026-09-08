@@ -4,6 +4,7 @@ import com.banking.transactionservice.client.AccountServiceClient;
 import com.banking.transactionservice.dto.TransactionResponse;
 import com.banking.transactionservice.dto.TransaferRequest;
 import com.banking.transactionservice.entity.*;
+import com.banking.transactionservice.exception.customexcepation.ResourceNotFoundException;
 import com.banking.transactionservice.repository.OutboxEventRepository;
 import com.banking.transactionservice.repository.TransactionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,9 +35,6 @@ public class TransactionService  {
 
     private static final String OTP_KEY_PREFIX = "transaction:otp:";
     private static final String OTP_ATTEMPT_KEY_PREFIX = "transaction:otp:attempts:";
-    private static final String TRANSACTION_INITIATED_TOPIC = "transaction.initiated";
-    private static final String TRANSACTION_COMPLETED_TOPIC = "transaction.completed";
-    private static final String TRANSACTION_REFUNDED_TOPIC = "transaction.refunded";
     private static final String FRAUD_DETECTED_TOPIC = "fraud.detected";
 
 

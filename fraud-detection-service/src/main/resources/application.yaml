@@ -5,14 +5,8 @@ spring:
     consumer:
       group-id: fraud-detection-group
       auto-offset-reset: earliest
-
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-
-      properties:
-        spring.json.trusted.packages: "*"
-        spring.json.use.type.headers: false
-        spring.json.value.default.type: java.util.HashMap
 
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer

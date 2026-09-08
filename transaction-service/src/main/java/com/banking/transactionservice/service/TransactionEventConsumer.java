@@ -1,9 +1,11 @@
-package com.banking.transactionservice.kafka;
+package com.banking.transactionservice.service;
 
 import com.banking.transactionservice.entity.Transaction;
 import com.banking.transactionservice.entity.TransactionStatus;
 import com.banking.transactionservice.repository.TransactionRepository;
 import com.banking.transactionservice.service.TransactionService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -25,6 +27,7 @@ public class TransactionEventConsumer {
     private final RedisTemplate<String, String> redisTemplate;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final TransactionService transactionService;
+    private final ObjectMapper objectMapper;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -39,6 +42,10 @@ public class TransactionEventConsumer {
     public void handleVerificationRequired(Map<String, Object> event) {
 
         try {
+
+            // =====================================================
+            // 1. Extract event data
+            // =====================================================
 
             String transactionId =
                     (String) event.get("transactionId");
@@ -56,6 +63,10 @@ public class TransactionEventConsumer {
                     reason
             );
 
+            // =====================================================
+            // 2. Find transaction
+            // =====================================================
+
             Transaction transaction =
                     transactionRepository.findById(transactionId)
                             .orElseThrow(() ->
@@ -64,12 +75,10 @@ public class TransactionEventConsumer {
                                     )
                             );
 
-            /*
-             * Important:
-             *
-             * If message is retried after OTP was already generated,
-             * don't generate another OTP.
-             */
+            // =====================================================
+            // 3. Prevent duplicate OTP generation
+            // =====================================================
+
             if (transaction.getStatus() != TransactionStatus.PROCESSING) {
 
                 log.info(
@@ -81,20 +90,34 @@ public class TransactionEventConsumer {
                 return;
             }
 
-            // Generate secure 6 digit OTP
+            // =====================================================
+            // 4. Generate secure 6 digit OTP
+            // =====================================================
+
             String otp =
                     String.valueOf(
                             100000 + secureRandom.nextInt(900000)
                     );
 
-            // Redis keys
+            log.info(
+                    "OTP generated for transactionId={}",
+                    transactionId
+            );
+
+            // =====================================================
+            // 5. Redis keys
+            // =====================================================
+
             String otpKey =
                     "transaction:otp:" + transactionId;
 
             String attemptKey =
                     "transaction:otp:attempts:" + transactionId;
 
-            // Store OTP for 5 minutes
+            // =====================================================
+            // 6. Store OTP in Redis for 5 minutes
+            // =====================================================
+
             redisTemplate.opsForValue()
                     .set(
                             otpKey,
@@ -102,7 +125,10 @@ public class TransactionEventConsumer {
                             Duration.ofMinutes(5)
                     );
 
-            // Store OTP attempts
+            // =====================================================
+            // 7. Store OTP attempts
+            // =====================================================
+
             redisTemplate.opsForValue()
                     .set(
                             attemptKey,
@@ -110,7 +136,10 @@ public class TransactionEventConsumer {
                             Duration.ofMinutes(5)
                     );
 
-            // Update transaction status
+            // =====================================================
+            // 8. Update transaction status
+            // =====================================================
+
             transaction.setStatus(
                     TransactionStatus.PENDING_VERIFICATION
             );
@@ -120,22 +149,11 @@ public class TransactionEventConsumer {
             transactionRepository.save(transaction);
 
             // =====================================================
-            // Publish OTP generated event
+            // 9. Create OTP generated event
             // =====================================================
 
-            /*
-             * Notification Service expects:
-             *
-             * transactionId
-             * accountNumber
-             * otp
-             * amount
-             * reason
-             *
-             * HashMap is used instead of Map.of()
-             * because Map.of() does not allow null values.
-             */
-            Map<String, Object> otpEvent = new HashMap<>();
+            Map<String, Object> otpEvent =
+                    new HashMap<>();
 
             otpEvent.put(
                     "transactionId",
@@ -162,13 +180,43 @@ public class TransactionEventConsumer {
                     reason
             );
 
+            // =====================================================
+            // 10. Convert HashMap → JSON String
+            // =====================================================
+
+            String otpEventJson;
+
+            try {
+
+                otpEventJson =
+                        objectMapper.writeValueAsString(otpEvent);
+
+            } catch (JsonProcessingException e) {
+
+                log.error(
+                        "Failed to serialize OTP event for transactionId={}",
+                        transactionId,
+                        e
+                );
+
+                throw new RuntimeException(
+                        "Failed to serialize OTP event",
+                        e
+                );
+            }
+
+            // =====================================================
+            // 11. Publish OTP event to Kafka
+            // =====================================================
+
             kafkaTemplate.send(
                     "transaction.otp.generated",
-                    otpEvent
+                    transactionId,
+                    otpEventJson
             );
 
             log.info(
-                    "OTP generated successfully for transactionId={}",
+                    "OTP generated event published successfully for transactionId={}",
                     transactionId
             );
 
@@ -181,7 +229,7 @@ public class TransactionEventConsumer {
 
             /*
              * Don't swallow exception.
-             * Kafka retry/error-handler can handle it.
+             * Kafka error handler can handle the exception.
              */
             throw e;
         }
