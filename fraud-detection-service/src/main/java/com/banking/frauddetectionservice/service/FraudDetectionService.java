@@ -119,36 +119,97 @@ public class FraudDetectionService {
 
     }
 
-    private boolean isAmountSuspicious(String accountNumber, BigDecimal amount) {
+    private boolean isAmountSuspicious(
+            String accountNumber,
+            BigDecimal amount) {
 
-        String avgKey = "fraud:avg_amount:" + accountNumber;
+        String totalKey =
+                "fraud:avg_amount:" + accountNumber + ":total";
 
-        String avgStr =
-                (String) redisTemplate.opsForValue().get(avgKey);
+        String countKey =
+                "fraud:avg_amount:" + accountNumber + ":count";
 
-        if (avgStr == null) {
-            redisTemplate.opsForValue().set(
-                    avgKey,
-                    amount.toString()
+        String totalStr =
+                redisTemplate.opsForValue().get(totalKey);
+
+        String countStr =
+                redisTemplate.opsForValue().get(countKey);
+
+        // First transaction
+        if (totalStr == null || countStr == null) {
+
+            redisTemplate.opsForValue()
+                    .set(totalKey, amount.toString());
+
+            redisTemplate.opsForValue()
+                    .set(countKey, "1");
+
+            log.info(
+                    "First transaction for account {}. Amount: {}",
+                    accountNumber,
+                    amount
             );
+
             return false;
         }
 
-        BigDecimal avgAmount = new BigDecimal(avgStr);
-        BigDecimal threhold = avgAmount.multiply(
-                BigDecimal.valueOf(suspiciousAmountMultiplier));
+        BigDecimal totalAmount =
+                new BigDecimal(totalStr);
 
-        //update running average
+        long transactionCount =
+                Long.parseLong(countStr);
 
-        BigDecimal newAvg = avgAmount.add(amount)
-                .divide(BigDecimal.valueOf(2),2, RoundingMode.HALF_UP);
-        redisTemplate.opsForValue().set(avgKey,newAvg.toString());
+        // Calculate actual historical average
+        BigDecimal avgAmount =
+                totalAmount.divide(
+                        BigDecimal.valueOf(transactionCount),
+                        2,
+                        RoundingMode.HALF_UP
+                );
 
-        log.info("Amount check - amount: {} threhold : {} suspicious: {}"
-                ,amount,threhold,amount.compareTo(threhold) > 0);
+        // Calculate suspicious threshold
+        BigDecimal threshold =
+                avgAmount.multiply(
+                        BigDecimal.valueOf(suspiciousAmountMultiplier)
+                );
 
-        return amount.compareTo(threhold) > 0;
+        boolean suspicious =
+                amount.compareTo(threshold) > 0;
 
+        log.info(
+                "Amount Check - account: {}, amount: {}, average: {}, threshold: {}, suspicious: {}",
+                accountNumber,
+                amount,
+                avgAmount,
+                threshold,
+                suspicious
+        );
+
+        // -------------------------------------------------
+        // Update historical statistics
+        // IMPORTANT:
+        // Update AFTER checking current transaction
+        // -------------------------------------------------
+
+        BigDecimal newTotal =
+                totalAmount.add(amount);
+
+        long newCount =
+                transactionCount + 1;
+
+        redisTemplate.opsForValue()
+                .set(
+                        totalKey,
+                        newTotal.toString()
+                );
+
+        redisTemplate.opsForValue()
+                .set(
+                        countKey,
+                        String.valueOf(newCount)
+                );
+
+        return suspicious;
     }
 
     private boolean isBalanceCheckFailed(BigDecimal senderBalance, BigDecimal amount) {

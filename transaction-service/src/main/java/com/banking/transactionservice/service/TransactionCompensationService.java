@@ -19,11 +19,16 @@ import java.util.Map;
 @Slf4j
 public class TransactionCompensationService {
 
-    private static final String TRANSACTION_REFUNDED_TOPIC = "transaction.refunded";
+    private static final String TRANSACTION_REFUNDED_TOPIC =
+            "transaction.refunded";
 
     private final TransactionRepository transactionRepository;
     private final AccountServiceClient accountServiceClient;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    // IMPORTANT: String because producer uses StringSerializer
+    private final KafkaTemplate<String, String> kafkaTemplate;
+
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public void compensateTransaction(
@@ -54,28 +59,51 @@ public class TransactionCompensationService {
 
             // Step 2: Mark transaction failed
             transaction.setStatus(TransactionStatus.FAILED);
+
             transaction.setFailureReason(
                     reason + " - Amount refunded"
             );
 
             transactionRepository.save(transaction);
 
-            // Step 3: Publish refund event
+            // Step 3: Create refund event
             Map<String, Object> refundEvent = new HashMap<>();
 
-            refundEvent.put("transactionId", transaction.getId());
+            refundEvent.put(
+                    "transactionId",
+                    transaction.getId()
+            );
+
             refundEvent.put(
                     "senderAccountNumber",
                     transaction.getSenderAccountNumber()
             );
-            refundEvent.put("amount", transaction.getAmount());
-            refundEvent.put("reason", reason);
 
+            refundEvent.put(
+                    "amount",
+                    transaction.getAmount()
+            );
+
+            refundEvent.put(
+                    "reason",
+                    reason
+            );
+
+            // Convert HashMap -> JSON String
+            String refundEventJson =
+                    objectMapper.writeValueAsString(refundEvent);
+
+            // Step 4: Publish refund event
             kafkaTemplate.send(
                     TRANSACTION_REFUNDED_TOPIC,
                     transaction.getId(),
-                    refundEvent
+                    refundEventJson
             ).get();
+
+            log.info(
+                    "Refund event published successfully. transactionId={}",
+                    transaction.getId()
+            );
 
         } catch (Exception e) {
 

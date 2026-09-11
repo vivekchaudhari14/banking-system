@@ -1,6 +1,7 @@
 package com.banking.transactionservice.service;
 
 import com.banking.transactionservice.client.AccountServiceClient;
+import com.banking.transactionservice.dto.AccountStatusResponse;
 import com.banking.transactionservice.dto.TransactionResponse;
 import com.banking.transactionservice.dto.TransaferRequest;
 import com.banking.transactionservice.entity.*;
@@ -31,7 +32,7 @@ public class TransactionService  {
     private final TransactionCompensationService compensationService;
     private final ObjectMapper objectMapper;
     private final RedisTemplate<String, String> redisTemplate;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     private static final String OTP_KEY_PREFIX = "transaction:otp:";
     private static final String OTP_ATTEMPT_KEY_PREFIX = "transaction:otp:attempts:";
@@ -83,6 +84,27 @@ public class TransactionService  {
                     "Sender and receiver account cannot be same"
             );
         }
+
+        // 2. Validate sender account status
+        AccountStatusResponse senderAccount =
+                accountServiceClient.getAccount(
+                        request.getSenderAccountNumber()
+                );
+
+        if (!"ACTIVE".equals(senderAccount.getStatus())) {
+
+            throw new IllegalStateException(
+                    "Sender account is " + senderAccount.getStatus()
+            );
+        }
+
+        if (senderAccount == null) {
+            throw new ResourceNotFoundException(
+                    "Sender account not found: "
+                            + request.getSenderAccountNumber()
+            );
+        }
+
 
         if (request.getAmount() == null ||
                 request.getAmount().signum() <= 0) {
@@ -329,7 +351,6 @@ public class TransactionService  {
         );
 
         // 1. First refund the deducted amount
-
         compensationService.compensateTransaction(transaction, reason);
 
         // 2. Then notify Account Service to block the account
@@ -352,10 +373,14 @@ public class TransactionService  {
 
         try {
 
+            // Convert HashMap -> JSON String
+            String fraudEventJson =
+                    objectMapper.writeValueAsString(fraudEvent);
+
             kafkaTemplate.send(
                     FRAUD_DETECTED_TOPIC,
                     transaction.getSenderAccountNumber(),
-                    fraudEvent
+                    fraudEventJson
             ).get();
 
             log.info(
@@ -377,7 +402,6 @@ public class TransactionService  {
             );
         }
     }
-
 
     private TransactionResponse completeTransaction(Transaction transaction) {
 

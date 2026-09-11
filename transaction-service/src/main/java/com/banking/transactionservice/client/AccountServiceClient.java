@@ -1,6 +1,8 @@
 package com.banking.transactionservice.client;
 
+import com.banking.transactionservice.dto.AccountStatusResponse;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -32,6 +34,11 @@ public interface AccountServiceClient {
             @PathVariable String accountNumber,
             @RequestParam BigDecimal amount,
             @RequestParam String transactionId
+    );
+
+    @GetMapping("/api/v1/accounts/{accountNumber}")
+    AccountStatusResponse getAccount(
+            @PathVariable("accountNumber") String accountNumber
     );
 
 }
