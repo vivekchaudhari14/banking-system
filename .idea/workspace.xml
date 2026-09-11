@@ -4,11 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="Blocked account transaction issue fix">
-      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/exception/customexcepation/InsufficientBalanceException.java" afterDir="false" />
+    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="Fix transaction validation, compensation and error handling">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/exception/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/exception/GlobalExceptionHandler.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/controller/PaymentController.java" beforeDir="false" afterPath="$PROJECT_DIR$/payment-service/src/main/java/com/banking/paymentservice/controller/PaymentController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/OutboxEventPublisher.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/OutboxEventPublisher.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionInitiationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionInitiationService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -237,7 +237,8 @@
     <MESSAGE value="Deduct Balance change flow" />
     <MESSAGE value="All Code Working now Move to test the api" />
     <MESSAGE value="Blocked account transaction issue fix" />
-    <option name="LAST_COMMIT_MESSAGE" value="Blocked account transaction issue fix" />
+    <MESSAGE value="Fix transaction validation, compensation and error handling" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fix transaction validation, compensation and error handling" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

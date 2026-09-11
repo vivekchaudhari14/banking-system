@@ -35,7 +35,7 @@ public class OutboxEventPublisher {
                 // 1. Publish event to Kafka
                 kafkaTemplate
                         .send(
-                                event.getEventType(),
+                                "transaction.initiated",
                                 event.getAggregateId(),
                                 event.getPayload()
                         )
@@ -44,7 +44,10 @@ public class OutboxEventPublisher {
                 // 2. Kafka publish successful
                 event.setStatus(OutboxEventStatus.PUBLISHED);
 
-                // 3. Mark event as published in DB
+                // 3. Set published timestamp
+                event.setPublishedAt(Instant.now());
+
+                // 4. Mark event as published in DB
                 outboxEventRepository.save(event);
 
                 log.info(

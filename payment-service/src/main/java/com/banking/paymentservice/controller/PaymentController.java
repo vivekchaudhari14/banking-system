@@ -26,10 +26,7 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
-
-    // =========================================================
     // CREATE ORDER
-    // =========================================================
 
     @PostMapping("/create-order")
     public ResponseEntity<PaymentOrderResponse> createPaymentOrder(
@@ -47,9 +44,7 @@ public class PaymentController {
     }
 
 
-    // =========================================================
     // RAZORPAY WEBHOOK
-    // =========================================================
 
     @PostMapping("/webhook")
     public ResponseEntity<String> handleWebhook(

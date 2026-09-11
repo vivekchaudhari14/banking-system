@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -30,55 +32,83 @@ public class TransactionInitiationService {
     public Transaction markProcessingAndCreateOutbox(
             Transaction transaction) {
 
+        // 1. Transaction status -> PROCESSING
         transaction.setStatus(TransactionStatus.PROCESSING);
 
         Transaction savedTransaction =
                 transactionRepository.save(transaction);
 
+        // 2. Create transaction.initiated event
+        Map<String, Object> event = new HashMap<>();
+
+        event.put(
+                "transactionId",
+                savedTransaction.getId()
+        );
+
+        event.put(
+                "senderAccountNumber",
+                savedTransaction.getSenderAccountNumber()
+        );
+
+        event.put(
+                "receiverAccountNumber",
+                savedTransaction.getReceiverAccountNumber()
+        );
+
+        event.put(
+                "amount",
+                savedTransaction.getAmount()
+        );
+
+        event.put(
+                "type",
+                savedTransaction.getType()
+        );
+
+        event.put(
+                "description",
+                savedTransaction.getDescription()
+        );
+
+        // 3. Convert event to JSON
+        String payload;
+
         try {
 
-            TransactionInitiatedEvent event =
-                    new TransactionInitiatedEvent(
-                            savedTransaction.getId(),
-                            savedTransaction.getSenderAccountNumber(),
-                            savedTransaction.getReceiverAccountNumber(),
-                            savedTransaction.getAmount(),
-                            savedTransaction.getDescription()
-                    );
+            payload = objectMapper.writeValueAsString(event);
 
-            String payload =
-                    objectMapper.writeValueAsString(event);
-
-            OutboxEvent outboxEvent =
-                    OutboxEvent.builder()
-                            .aggregateId(savedTransaction.getId())
-                            .eventType("transaction.initiated")
-                            .payload(payload)
-                            .status(OutboxEventStatus.PENDING)
-                            .createdAt(Instant.now())
-                            .build();
-
-            outboxEventRepository.save(outboxEvent);
-
-            log.info(
-                    "Transaction marked PROCESSING and outbox event created. transactionId={}",
-                    savedTransaction.getId()
-            );
-
-            return savedTransaction;
-
-        } catch (JsonProcessingException e) {
-
-            log.error(
-                    "Failed to create transaction.initiated outbox event. transactionId={}",
-                    savedTransaction.getId(),
-                    e
-            );
+        } catch (Exception e) {
 
             throw new RuntimeException(
-                    "Failed to create transaction initiated event",
+                    "Failed to serialize transaction initiated event",
                     e
             );
         }
+
+        // 4. Create Outbox Event
+        OutboxEvent outboxEvent =
+                OutboxEvent.builder()
+                        .aggregateId(
+                                savedTransaction.getId()
+                        )
+                        .eventType(
+                                "TRANSACTION_INITIATED"
+                        )
+                        .payload(payload)
+                        .status(
+                                OutboxEventStatus.PENDING
+                        )
+                        .build();
+
+        // 5. Save Outbox Event
+        outboxEventRepository.save(outboxEvent);
+
+        log.info(
+                "Transaction marked PROCESSING and outbox event created: transactionId={}",
+                savedTransaction.getId()
+        );
+
+        return savedTransaction;
     }
 }
