@@ -5,10 +5,11 @@ import com.banking.transactionservice.dto.AccountStatusResponse;
 import com.banking.transactionservice.dto.TransactionResponse;
 import com.banking.transactionservice.dto.TransaferRequest;
 import com.banking.transactionservice.entity.*;
+import com.banking.transactionservice.exception.customexcepation.InsufficientBalanceException;
 import com.banking.transactionservice.exception.customexcepation.ResourceNotFoundException;
-import com.banking.transactionservice.repository.OutboxEventRepository;
 import com.banking.transactionservice.repository.TransactionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -24,7 +25,6 @@ import java.util.*;
 public class TransactionService  {
 
     private final TransactionRepository transactionRepository;
-    private final OutboxEventRepository outboxEventRepository;
     private final AccountServiceClient accountServiceClient;
     private final TransactionPersistenceService transactionPersistenceService;
     private final TransactionCompletionService transactionCompletionService;
@@ -39,22 +39,10 @@ public class TransactionService  {
     private static final String FRAUD_DETECTED_TOPIC = "fraud.detected";
 
 
-    /*
-
-        SAGA Step -1 : Initiate transfer
-        Deducts from sender via feign
-        saves transaction as Processing
-        publish event to kafka for fraud check
-        returns.
-
-     */
-
 
     public TransactionResponse transfer(
             TransaferRequest request,
             String idempotencyKey) {
-
-
 
         log.info(
                 "SAGA START - Transfer: {} -> {} amount: {}",
@@ -63,20 +51,49 @@ public class TransactionService  {
                 request.getAmount()
         );
 
+        // 1. Validate Idempotency-Key
+
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            throw new IllegalArgumentException("Idempotency-Key is required");
+            throw new IllegalArgumentException(
+                    "Idempotency-Key is required"
+            );
         }
+
+        // 2. Idempotency Check
 
         Optional<Transaction> existingTransaction =
                 transactionRepository.findByIdempotencyKey(idempotencyKey);
 
         if (existingTransaction.isPresent()) {
-            log.info("Duplicate request detected for idempotency key: {}", idempotencyKey);
 
-            return mapToResponse(existingTransaction.get());
+            log.info(
+                    "Duplicate request detected for idempotency key: {}",
+                    idempotencyKey
+            );
+
+            return mapToResponse(
+                    existingTransaction.get()
+            );
         }
 
-        // 1. Business validation
+        // 3. Business Validation
+
+        if (request.getSenderAccountNumber() == null ||
+                request.getSenderAccountNumber().isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Sender account number is required"
+            );
+        }
+
+        if (request.getReceiverAccountNumber() == null ||
+                request.getReceiverAccountNumber().isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Receiver account number is required"
+            );
+        }
+
         if (request.getSenderAccountNumber()
                 .equals(request.getReceiverAccountNumber())) {
 
@@ -84,27 +101,6 @@ public class TransactionService  {
                     "Sender and receiver account cannot be same"
             );
         }
-
-        // 2. Validate sender account status
-        AccountStatusResponse senderAccount =
-                accountServiceClient.getAccount(
-                        request.getSenderAccountNumber()
-                );
-
-        if (!"ACTIVE".equals(senderAccount.getStatus())) {
-
-            throw new IllegalStateException(
-                    "Sender account is " + senderAccount.getStatus()
-            );
-        }
-
-        if (senderAccount == null) {
-            throw new ResourceNotFoundException(
-                    "Sender account not found: "
-                            + request.getSenderAccountNumber()
-            );
-        }
-
 
         if (request.getAmount() == null ||
                 request.getAmount().signum() <= 0) {
@@ -114,7 +110,31 @@ public class TransactionService  {
             );
         }
 
-        // 2. Create transaction FIRST
+        // 4. Validate Sender Account
+
+        AccountStatusResponse senderAccount =
+                accountServiceClient.getAccount(
+                        request.getSenderAccountNumber()
+                );
+
+        if (senderAccount == null) {
+
+            throw new ResourceNotFoundException(
+                    "Sender account not found: "
+                            + request.getSenderAccountNumber()
+            );
+        }
+
+        if (!"ACTIVE".equals(senderAccount.getStatus())) {
+
+            throw new IllegalStateException(
+                    "Sender account is "
+                            + senderAccount.getStatus()
+            );
+        }
+
+        // 5. Create Transaction FIRST
+
         Transaction transaction = new Transaction();
 
         transaction.setSenderAccountNumber(
@@ -125,29 +145,37 @@ public class TransactionService  {
                 request.getReceiverAccountNumber()
         );
 
-        transaction.setAmount(request.getAmount());
+        transaction.setAmount(
+                request.getAmount()
+        );
 
-        transaction.setType(TransactionType.TRANSFER);
+        transaction.setType(
+                TransactionType.TRANSFER
+        );
 
-        transaction.setDescription(request.getDescription());
+        transaction.setDescription(
+                request.getDescription()
+        );
 
         transaction.setReferenceNumber(
                 UUID.randomUUID().toString()
         );
 
-        transaction.setIdempotencyKey(idempotencyKey);
+        transaction.setIdempotencyKey(
+                idempotencyKey
+        );
 
-        // Save transaction
         Transaction savedTransaction =
-                transactionPersistenceService.createPendingTransaction(transaction);
+                transactionPersistenceService
+                        .createPendingTransaction(transaction);
 
         log.info(
                 "Transaction created with PENDING status: {}",
                 savedTransaction.getId()
         );
 
+        // 6. Saga Step 1 - Deduct Sender Balance
 
-        // 3. Saga Step 1 - Deduct sender balance
         try {
 
             accountServiceClient.deductBalance(
@@ -159,6 +187,23 @@ public class TransactionService  {
             log.info(
                     "Sender balance deducted successfully: transaction={}",
                     savedTransaction.getId()
+            );
+
+        } catch (FeignException.BadRequest e) {
+
+            log.warn(
+                    "Failed to deduct sender balance. " +
+                            "Insufficient balance: transaction={}",
+                    savedTransaction.getId()
+            );
+
+            transactionPersistenceService.markFailed(
+                    savedTransaction,
+                    "Insufficient balance"
+            );
+
+            throw new InsufficientBalanceException(
+                    "Insufficient balance for sender account"
             );
 
         } catch (Exception e) {
@@ -180,17 +225,27 @@ public class TransactionService  {
             );
         }
 
+        // 7. Saga Step 2 - Mark Processing + Create Outbox
 
         try {
 
             savedTransaction =
                     transactionInitiationService
-                            .markProcessingAndCreateOutbox(savedTransaction);
+                            .markProcessingAndCreateOutbox(
+                                    savedTransaction
+                            );
+
+            log.info(
+                    "Transaction marked PROCESSING and " +
+                            "outbox event created: transaction={}",
+                    savedTransaction.getId()
+            );
 
         } catch (Exception e) {
 
             log.error(
-                    "Failed to mark transaction processing/create outbox. transactionId={}",
+                    "Failed to mark transaction processing/create outbox. " +
+                            "transactionId={}",
                     savedTransaction.getId(),
                     e
             );
@@ -200,12 +255,19 @@ public class TransactionService  {
                     "Failed to create transaction initiated event"
             );
 
+            /*
+             * IMPORTANT:
+             *
+             * Balance was already deducted before this failure.
+             * Therefore, production-level implementation should
+             * compensate/refund the deducted amount here.
+             */
+
             throw new RuntimeException(
                     "Unable to process transfer",
                     e
             );
         }
-
 
         return mapToResponse(savedTransaction);
     }
@@ -254,9 +316,7 @@ public class TransactionService  {
 
         String storedOtp = redisTemplate.opsForValue().get(otpKey);
 
-        // =========================================================
         // 1. OTP EXPIRED
-        // =========================================================
 
         if (storedOtp == null) {
 
@@ -273,9 +333,7 @@ public class TransactionService  {
             return mapToResponse(transaction);
         }
 
-        // =========================================================
         // 2. WRONG OTP
-        // =========================================================
 
         if (!storedOtp.equals(otp)) {
 
@@ -316,9 +374,8 @@ public class TransactionService  {
             return mapToResponse(transaction);
         }
 
-        // =========================================================
+
         // 3. CORRECT OTP
-        // =========================================================
 
         log.info(
                 "OTP verified successfully for transaction: {}",

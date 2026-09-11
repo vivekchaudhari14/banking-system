@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="All Code Working now Move to test the api">
-      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/dto/AccountStatusResponse.java" afterDir="false" />
+    <list default="true" id="9a121a2c-d011-475f-ac34-d24c805cc1c6" name="Changes" comment="Blocked account transaction issue fix">
+      <change afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/exception/customexcepation/InsufficientBalanceException.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/service/FraudDetectionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/fraud-detection-service/src/main/java/com/banking/frauddetectionservice/service/FraudDetectionService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/client/AccountServiceClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/client/AccountServiceClient.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionCompensationService.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionCompensationService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/exception/GlobalExceptionHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/exception/GlobalExceptionHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionService.java" beforeDir="false" afterPath="$PROJECT_DIR$/transaction-service/src/main/java/com/banking/transactionservice/service/TransactionService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -238,7 +236,8 @@
     <MESSAGE value="Add Some transactionService classs and fix some issues" />
     <MESSAGE value="Deduct Balance change flow" />
     <MESSAGE value="All Code Working now Move to test the api" />
-    <option name="LAST_COMMIT_MESSAGE" value="All Code Working now Move to test the api" />
+    <MESSAGE value="Blocked account transaction issue fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="Blocked account transaction issue fix" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
